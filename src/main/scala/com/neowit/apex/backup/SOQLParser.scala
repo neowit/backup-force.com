@@ -22,20 +22,29 @@ package com.neowit.apex.backup
 
 class SOQLParser(soqlStr:String) {
 
-    val twoParts = """select(.*)from(.*)""".r
-    val fourParts = """select(.*)from(.*)where(.*)limit(.*)""".r
-    val selectLimit = """select(.*)from(.*)limit(.*)""".r
-    val selectWhere = """select(.*)from(.*)where(.*)""".r
+    val twoParts = """select (.*) from (.*)""".r
+    val fourParts = """select (.*) from (.*) where (.*) limit (.*)""".r
+    val selectLimit = """select (.*)from(.*) limit (.*)""".r
+    val selectWhere = """select (.*) from (.*) where (.*)""".r
 
-    val (select, from, where, limit) = soqlStr.toLowerCase match {
+    private val (selectVal, fromVal, whereVal, limitVal) = soqlStr.toLowerCase match {
         case fourParts(sel, frm, wh, lim) => (sel, frm, wh, lim.trim)
-        case selectLimit(sel, frm, lim)  => (sel, frm, null, lim.trim)
-        case selectWhere(sel, frm, wh)  => (sel, frm, wh, null)
-        case twoParts(sel, frm) => (sel, frm, null, null)
-        case _ => (null, null, null, null)
+        case selectLimit(sel, frm, lim)  => (sel, frm, None, lim.trim)
+        case selectWhere(sel, frm, wh)  => (sel, frm, wh, None)
+        case twoParts(sel, frm) => (sel, frm, None, None)
+        case _ => (None, None, None, None)
     }
-    def fields:List[String] = if ("*" == select.trim) List("*") else select.split(",").map(fName => fName.trim).toList
-    def hasWhere = null != where
-    def hasLimit = null != limit
+    def select = getAsString(selectVal)
+    def from = getAsString(fromVal)
+    def where = getAsString(whereVal)
+    def limit = getAsString(limitVal)
+    def fields:List[String] = if ("*" == select) List("*") else select.split(",").map(fName => fName.trim).toList
+    def hasWhere = where.length > 0
+    def hasLimit = limit.length > 0
     def isAllFields = fields == List("*")
+
+    private def getAsString(strVal:Any) = strVal match {
+        case None => ""
+        case str:String => str.trim
+    }
 }

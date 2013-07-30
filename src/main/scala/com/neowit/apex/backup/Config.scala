@@ -93,7 +93,8 @@ object Config {
                      e.g.: --backup.objects "Account, Contact, MyObject__c"
 
       Example:
-      java -jar backup-force.com --conf ~/myconf.properties
+      java -jar backup-force.com-1.0-SNAPSHOT-jar-with-dependencies.jar --config ~/myconf.properties
+      OR
       java -classpath backup-force.com-1.0-SNAPSHOT-jar-with-dependencies.jar com.neowit.apex.backup.BackupRunner \
             --config /full/path/to/config/main.conf
 

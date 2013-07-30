@@ -21,7 +21,7 @@ package com.neowit.apex.backup
 
 import com.sforce.soap.partner.PartnerConnection
 import java.io.{File, FileWriter}
-import com.sforce.soap.partner.fault.InvalidFieldFault
+import com.sforce.soap.partner.fault.{MalformedQueryFault, InvalidFieldFault}
 
 
 class BackupSObject(connection:PartnerConnection, objectApiName:String ) {
@@ -31,7 +31,7 @@ class BackupSObject(connection:PartnerConnection, objectApiName:String ) {
     def run() {
         if (!run(ALLOW_GLOBAL_WHERE)) {
             //if query with globalWhere fails, try once again without it
-            run(!DISABLE_GLOBAL_WHERE)
+            run(DISABLE_GLOBAL_WHERE)
         }
     }
     def run(allowGlobalWhere: Boolean): Boolean = {
@@ -83,6 +83,8 @@ class BackupSObject(connection:PartnerConnection, objectApiName:String ) {
             result = true
         } catch {
             case ex: InvalidFieldFault => println(ex); if (allowGlobalWhere) println("Will try once again without global.where")
+            case ex: MalformedQueryFault if ex.getExceptionMessage.indexOf("Implementation restriction:") >=0  =>
+                println(ex); println("Object " + objectApiName +" can not be queried due to Implementation restriction")
         }
         csvWriter.endDocument()
 
