@@ -73,18 +73,25 @@ class BackupSObject(connection:PartnerConnection, objectApiName:String ) {
         val format = new java.text.SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ssZ")
 
         try {
-            val queryResults = connection.query(queryString)
+            var queryResults = connection.query(queryString)
             val size = queryResults.getSize
             if (size > 0) {
-                for (record <- queryResults.getRecords) {
-                    //println("Id: " + record.getId + "; Name=" + record.getField("Name"))
-                    val values = fieldList.map(fName => (record.getField(fName) match {
-                        case null => ""
-                        case x => x
-                    }).toString).toArray
-                    csvWriter.writeRecord(values)
-                    processRecord(record)
-                }
+                var doExit = false
+                do {
+                    for (record <- queryResults.getRecords) {
+                        //println("Id: " + record.getId + "; Name=" + record.getField("Name"))
+                        val values = fieldList.map(fName => (record.getField(fName) match {
+                            case null => ""
+                            case x => x
+                        }).toString).toArray
+                        csvWriter.writeRecord(values)
+                        processRecord(record)
+                    }
+                    doExit = queryResults.isDone
+                    if (!doExit ){
+                        queryResults = connection.queryMore(queryResults.getQueryLocator)
+                    }
+                } while (!doExit)
             }
             println(objectApiName + ": " + size)
             result = true
@@ -103,9 +110,10 @@ class BackupSObject(connection:PartnerConnection, objectApiName:String ) {
 
     private def processRecord(record: SObject) {
         //save attachment as file if "backup.attachment.asfile" is not null
-        if ("attachment" == record.getType.toLowerCase) {
+        val FILE_OBJ_TYPES = Set("attachment", "document")
+        if ( FILE_OBJ_TYPES.contains(record.getType.toLowerCase)) {
             val fileName = Config.getProperty("backup.attachment.asfile") match {
-                case str:String if (str.length >0) =>
+                case str:String if str.length >0 =>
                     val fileName = record.getField("Name").toString
                     val extIndex1 = fileName.lastIndexOf(".")
                     val extIndex = if (extIndex1 >= 0) extIndex1 else fileName.length

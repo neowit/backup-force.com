@@ -36,13 +36,14 @@ object ConfigTest {
 
 }
 class ConfigTest extends TestCase("Config") {
+    val FAIL = false
 
     def testNoCommandParams() {
         try {
             Config.load(List())
         } catch {
             case ex: InvalidCommandLineException => println("OK")
-            case ex: Throwable => assert(false, "Expected InvalidCommandLineException for empty command line. " + ex)
+            case ex: Throwable => assert(FAIL, "Expected InvalidCommandLineException for empty command line. " + ex)
         }
     }
     def testWrongParam() {
@@ -50,7 +51,7 @@ class ConfigTest extends TestCase("Config") {
             Config.load(List("--incorrect param"))
         } catch {
             case ex: InvalidCommandLineException => println("OK")
-            case ex: Throwable => assert(false, "Expected InvalidCommandLineException for empty command line." + ex)
+            case ex: Throwable => assert(FAIL, "Expected InvalidCommandLineException for empty command line." + ex)
         }
     }
     def testNoConfigParam() {
@@ -60,7 +61,7 @@ class ConfigTest extends TestCase("Config") {
             Config.getProperty("password")
         } catch {
             case ex: NoSuchElementException => println("OK")
-            case ex: Throwable => assert(false, "Expected NoSuchElementException for missing config parameter. " + ex)
+            case ex: Throwable => assert(FAIL, "Expected NoSuchElementException for missing config parameter. " + ex)
         }
     }
     def testMissingConfigFile() {
@@ -68,7 +69,7 @@ class ConfigTest extends TestCase("Config") {
             Config.load(List("--config", "/some/path"))
         } catch {
             case ex: FileNotFoundException => println("OK")
-            case ex: Throwable => assert(false, "Expected FileNotFoundException for missing config parameter. " + ex)
+            case ex: Throwable => assert(FAIL, "Expected FileNotFoundException for missing config parameter. " + ex)
         }
     }
 
@@ -77,11 +78,11 @@ class ConfigTest extends TestCase("Config") {
             Config.load(List("--config"))
         } catch {
             case ex: InvalidCommandLineException => println("OK")
-            case ex: Throwable => assert(false, "Expected InvalidCommandLineException for missing value of config parameter. " + ex)
+            case ex: Throwable => assert(FAIL, "Expected InvalidCommandLineException for missing value of config parameter. " + ex)
         }
     }
     def testParameterOverride() {
-        Config.load(List("--config", "/some/path"))
+        //Config.load(List("--config", "/some/path"))
         //Config.mainProps.setProperty("prop1", "value1")
     }
 }
