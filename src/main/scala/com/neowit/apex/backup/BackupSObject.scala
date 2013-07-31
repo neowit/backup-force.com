@@ -115,11 +115,16 @@ class BackupSObject(connection:PartnerConnection, objectApiName:String ) {
 
     private def processRecord(record: SObject) {
         //save attachment as file if "backup.attachment.asfile" is not null
-        val FILE_OBJ_TYPES = Set("attachment", "document")
-        if ( FILE_OBJ_TYPES.contains(record.getType.toLowerCase)) {
-            val fileName = Config.getProperty("backup.attachment.asfile") match {
+        val FILE_OBJ_TYPES = Map("attachment" -> ("Name", "Body"), "document" -> ("Name", "Body"),
+                                 "contentversion" -> ("PathOnClient", "VersionData"))
+        val objectApiName = record.getType.toLowerCase
+        if ( FILE_OBJ_TYPES.contains(objectApiName)) {
+            val fileNameField = FILE_OBJ_TYPES(objectApiName)._1
+            val fileBodyField = FILE_OBJ_TYPES(objectApiName)._2
+
+            val fileName = Config.getProperty("backup.extract.file") match {
                 case str:String if str.length >0 =>
-                    val fileName = record.getField("Name").toString
+                    val fileName = record.getField(fileNameField).toString
                     val extIndex1 = fileName.lastIndexOf(".")
                     val extIndex = if (extIndex1 >= 0) extIndex1 else fileName.length
                     val name = fileName.substring(0, extIndex)
@@ -129,8 +134,8 @@ class BackupSObject(connection:PartnerConnection, objectApiName:String ) {
             }
 
             if (null != fileName) {
-                val file = new File(Config.getAttachmentFolderPath() + File.separator + fileName)
-                val buffer = record.getField("Body").toString.getBytes
+                val file = new File(Config.mkdirs(record.getType) + File.separator + fileName)
+                val buffer = record.getField(fileBodyField).toString.getBytes
                 val output = new FileOutputStream(file)
                 output.write(Base64.decode(buffer))
                 output.close()

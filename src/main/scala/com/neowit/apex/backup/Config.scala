@@ -178,15 +178,18 @@ object Config {
             "1900-01-01T00:00:00Z"
     }
 
-    def getAttachmentFolderPath() = {
+    /*
+     * generates specified folders nested in the main outputFolder
+     */
+    def mkdirs(dirName: String) = {
         def outputFolder = getProperty("outputFolder")
-        val attachmentFolder = outputFolder + File.separator + "Attachments"
+        val path = outputFolder + File.separator + dirName
         //check that folder exists
-        val f = new File(attachmentFolder)
+        val f = new File(path)
         if (!f.exists())
             f.mkdirs()
 
-        attachmentFolder
+        path
     }
 
 }
