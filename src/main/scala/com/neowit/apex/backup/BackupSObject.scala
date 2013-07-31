@@ -20,8 +20,9 @@
 package com.neowit.apex.backup
 
 import com.sforce.soap.partner.PartnerConnection
-import java.io.{File, FileWriter}
+import java.io.{FileNotFoundException, File, FileWriter}
 import com.sforce.soap.partner.fault.{MalformedQueryFault, InvalidFieldFault}
+import java.util.Properties
 
 
 class BackupSObject(connection:PartnerConnection, objectApiName:String ) {
@@ -53,11 +54,10 @@ class BackupSObject(connection:PartnerConnection, objectApiName:String ) {
         } else {
             soqlParser.fields.map(fName => fName.substring(0, 1).toUpperCase + fName.substring(1))
         }
-        val whereCondStr = soqlParser.where
         require(null != Config.outputFolder, "config file missing 'outputFolder' value")
 
         val queryString = {"select " + fieldList.mkString(",") + " from " + objectApiName +
-            (if (null != whereCondStr) " where " + whereCondStr else "") +
+            (if (soqlParser.hasWhere) " where " + soqlParser.where else "") +
             (if (soqlParser.hasLimit) " limit " + soqlParser.limit  else "")}
 
         val file = new File(Config.outputFolder + File.separator + objectApiName + ".csv")
@@ -66,6 +66,10 @@ class BackupSObject(connection:PartnerConnection, objectApiName:String ) {
         val csvWriter = new com.sforce.bulk.CsvWriter(fieldList.toArray[String], writer)
 
         var result = false
+        val timeStampCal = connection.getServerTimestamp.getTimestamp
+        //val format = new java.text.SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'")
+        val format = new java.text.SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ssZ")
+
         try {
             val queryResults = connection.query(queryString)
             val size = queryResults.getSize
@@ -81,6 +85,9 @@ class BackupSObject(connection:PartnerConnection, objectApiName:String ) {
             }
             println(objectApiName + ": " + size)
             result = true
+            //store date/time in lastQuery.properties
+            Config.storeLastModifiedDate(objectApiName, format.format(timeStampCal.getTime))
+
         } catch {
             case ex: InvalidFieldFault => println(ex); if (allowGlobalWhere) println("Will try once again without global.where")
             case ex: MalformedQueryFault if ex.getExceptionMessage.indexOf("Implementation restriction:") >=0  =>
@@ -90,4 +97,6 @@ class BackupSObject(connection:PartnerConnection, objectApiName:String ) {
 
         result
     }
+
+
 }

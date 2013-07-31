@@ -36,7 +36,14 @@ class SOQLParser(soqlStr:String) {
     }
     def select = getAsString(selectVal)
     def from = getAsString(fromVal)
-    def where = getAsString(whereVal)
+    def where = {
+        var whereStr = getAsString(whereVal)
+        val token = "$object.lastmodifieddate"
+        if (whereStr.contains(token))
+            whereStr = whereStr.replaceAll("\\" + token, Config.getStoredLastModifiedDate(from))
+
+        whereStr
+    }
     def limit = getAsString(limitVal)
     def fields:List[String] = if ("*" == select) List("*") else select.split(",").map(fName => fName.trim).toList
     def hasWhere = where.length > 0

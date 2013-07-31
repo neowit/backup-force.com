@@ -21,21 +21,32 @@ package com.neowit.apex.backup
 
 import scala.annotation.tailrec
 import java.util.Properties
+import java.io.{FileWriter, File}
 
+
+class InvalidCommandLineException(msg: String)  extends IllegalArgumentException {
+    def this() {
+        this(null)
+    }
+}
+class MissingConfigParameterException(msg:String) extends InvalidCommandLineException
 
 object Config {
 
     type OptionMap = Map[String, Any]
-    private val mainProps, credProps = new Properties()
+    private val mainProps, credProps, lastQueryProps = new Properties()
     private var options:OptionMap = Map()
+    private var isValidCommandLine = false
+    private var lastQueryPropsFile: File = null
 
     def load(arglist: List[String]) {
-        if (arglist.isEmpty)
+        if (arglist.isEmpty) {
             help()
+            throw new InvalidCommandLineException
+        }
 
         @tailrec
         def nextOption(map: OptionMap, list: List[String]): OptionMap = {
-            def isSwitch(s: String) = s(0) == '-'
             list match {
                 case Nil => map
                 case "--config" :: value :: tail =>
@@ -48,19 +59,19 @@ object Config {
                     nextOption(map ++ Map("sf.password" -> value.toString), tail)
                 case "--sf.endpoint" :: value :: tail =>
                     nextOption(map ++ Map("sf.endpoint" -> value.toString), tail)
+                case "--outputFolder" :: value :: tail =>
+                    nextOption(map ++ Map("outputFolder" -> value.toString), tail)
                 case "--backup.objects" :: value :: tail =>
                     nextOption(map ++ Map("backup.objects" -> value.toString.split(',').map((s: String) => s.trim)), tail)
-                case string :: opt2 :: tail if isSwitch(opt2) =>
-                    nextOption(map ++ Map("infile" -> string), list.tail)
-                case string :: Nil => nextOption(map ++ Map("infile" -> string), list.tail)
-                case option :: tail => println("Unknown or incomplete option: " + option)
+                case _ =>
                     help()
-                    sys.exit(1)
+                    throw new InvalidCommandLineException
             }
         }
 
         //args.foreach(arg => println(arg))
         options = nextOption(Map(), arglist)
+        isValidCommandLine = true
         println(options)
         val mainConfigPath = options("config")
         require(null != mainConfigPath, "missing --config parameter")
@@ -69,6 +80,14 @@ object Config {
 
         val credentialsConfigPath = if (options.contains("credentials")) options("credentials") else mainConfigPath
         credProps.load(scala.io.Source.fromFile(credentialsConfigPath.toString).bufferedReader())
+
+        val outputFolder = Config.getProperty("outputFolder")
+        val lastQueryPropsFilePath = outputFolder + File.separator + "_lastQuery.properties"
+        lastQueryPropsFile = new File(lastQueryPropsFilePath)
+        if (!lastQueryPropsFile.exists) {
+            lastQueryPropsFile.createNewFile()
+        }
+        lastQueryProps.load(scala.io.Source.fromFile(lastQueryPropsFilePath).bufferedReader())
     }
 
 
@@ -116,9 +135,15 @@ object Config {
         val cmdLineValue = options.get(propName)
         val alterConfValue = alterConf.getProperty(propName)
         val mainConfValue = mainProps.getProperty(propName)
-        if (None != cmdLineValue) cmdLineValue.toString
-        else if (null != alterConfValue) alterConfValue
-        else mainConfValue
+
+        val res = if (None != cmdLineValue) cmdLineValue
+                    else if (null != alterConfValue) alterConfValue
+                    else mainConfValue
+
+        if (null == res)
+            throw new MissingConfigParameterException("missing parameter " + propName)
+
+        res.toString
     }
     def username = getProperty("sf.username", credProps)
     def password = getProperty("sf.password", credProps)
@@ -137,5 +162,21 @@ object Config {
     def outputFolder = getProperty("outputFolder")
 
     def globalWhere = getProperty("backup.global.where")
+
+    def storeLastModifiedDate(objectApiName: String, formattedDateTime: String) {
+
+        lastQueryProps.setProperty(objectApiName.toLowerCase, formattedDateTime)
+        val writer = new FileWriter(lastQueryPropsFile)
+        lastQueryProps.store(writer, "time stamps when last queried each object")
+    }
+
+    def getStoredLastModifiedDate(objectApiName: String): String = {
+        val storedDateStr = lastQueryProps.getProperty(objectApiName.toLowerCase)
+        if (null != storedDateStr)
+            storedDateStr
+        else
+            "1900-01-01T00:00:00Z"
+    }
+
 }
 
