@@ -51,11 +51,16 @@ class BackupSObject(connection:PartnerConnection, objectApiName:String ) {
         val soqlParser = new SOQLParser(soql)
 
         val describeRes = connection.describeSObject(objectApiName)
+        val allFields = describeRes.getFields
         val fieldList = if (soqlParser.isAllFields) {
-            describeRes.getFields.filter(!_.isCalculated).map(f => f.getName).toList
+            allFields.filter(!_.isCalculated).map(f => f.getName).toList
         } else {
-            soqlParser.fields.map(fName => fName.substring(0, 1).toUpperCase + fName.substring(1))
+            //fix case of all field names - user defined fields are not always correctly formatted
+            // and as a result record.getField(fName) may return nothing
+            val selectedFieldsSet = soqlParser.fields.map(_.toLowerCase).toSet
+            allFields.filter(f => selectedFieldsSet.contains(f.getName.toLowerCase)).map(f => f.getName).toList
         }
+
         require(null != Config.outputFolder, "config file missing 'outputFolder' value")
 
         val queryString = {"select " + fieldList.mkString(",") + " from " + objectApiName +
