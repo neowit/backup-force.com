@@ -178,5 +178,16 @@ object Config {
             "1900-01-01T00:00:00Z"
     }
 
+    def getAttachmentFolderPath() = {
+        def outputFolder = getProperty("outputFolder")
+        val attachmentFolder = outputFolder + File.separator + "Attachments"
+        //check that folder exists
+        val f = new File(attachmentFolder)
+        if (!f.exists())
+            f.mkdirs()
+
+        attachmentFolder
+    }
+
 }
 

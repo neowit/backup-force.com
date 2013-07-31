@@ -20,9 +20,11 @@
 package com.neowit.apex.backup
 
 import com.sforce.soap.partner.PartnerConnection
-import java.io.{FileNotFoundException, File, FileWriter}
+import java.io.{FileOutputStream, FileNotFoundException, File, FileWriter}
 import com.sforce.soap.partner.fault.{MalformedQueryFault, InvalidFieldFault}
 import java.util.Properties
+import com.sforce.soap.partner.sobject.SObject
+import com.sforce.ws.util.Base64
 
 
 class BackupSObject(connection:PartnerConnection, objectApiName:String ) {
@@ -81,6 +83,7 @@ class BackupSObject(connection:PartnerConnection, objectApiName:String ) {
                         case x => x
                     }).toString).toArray
                     csvWriter.writeRecord(values)
+                    processRecord(record)
                 }
             }
             println(objectApiName + ": " + size)
@@ -98,5 +101,28 @@ class BackupSObject(connection:PartnerConnection, objectApiName:String ) {
         result
     }
 
+    private def processRecord(record: SObject) {
+        //save attachment as file if "backup.attachment.asfile" is not null
+        if ("attachment" == record.getType.toLowerCase) {
+            val fileName = Config.getProperty("backup.attachment.asfile") match {
+                case str:String if (str.length >0) =>
+                    val fileName = record.getField("Name").toString
+                    val extIndex1 = fileName.lastIndexOf(".")
+                    val extIndex = if (extIndex1 >= 0) extIndex1 else fileName.length
+                    val name = fileName.substring(0, extIndex)
+                    val ext = if (extIndex < fileName.length) fileName.substring(extIndex+1) else ""
+                    str.replaceAll("\\$name", name).replaceAll("\\$id", record.getId).replaceAll("\\$ext", ext)
+                case _ => null
+            }
+
+            if (null != fileName) {
+                val file = new File(Config.getAttachmentFolderPath() + File.separator + fileName)
+                val buffer = record.getField("Body").toString.getBytes
+                val output = new FileOutputStream(file)
+                output.write(Base64.decode(buffer))
+                output.close()
+            }
+        }
+    }
 
 }

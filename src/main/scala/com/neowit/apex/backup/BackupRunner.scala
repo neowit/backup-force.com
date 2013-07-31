@@ -80,8 +80,6 @@ object BackupRunner {
             val backuper = new BackupSObject(connection, objApiName)
             backuper.run()
         }
-
-
     }
 }
 
