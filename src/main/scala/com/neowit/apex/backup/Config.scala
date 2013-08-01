@@ -81,7 +81,9 @@ object Config {
         val credentialsConfigPath = if (options.contains("credentials")) options("credentials") else mainConfigPath
         credProps.load(scala.io.Source.fromFile(credentialsConfigPath.toString).bufferedReader())
 
-        val outputFolder = Config.getProperty("outputFolder")
+        //make sure output folder exists
+        Config.mkdirs("")
+
         val lastQueryPropsFilePath = outputFolder + File.separator + "_lastQuery.properties"
         lastQueryPropsFile = new File(lastQueryPropsFilePath)
         if (!lastQueryPropsFile.exists) {
@@ -182,7 +184,6 @@ object Config {
      * generates specified folders nested in the main outputFolder
      */
     def mkdirs(dirName: String) = {
-        def outputFolder = getProperty("outputFolder")
         val path = outputFolder + File.separator + dirName
         //check that folder exists
         val f = new File(path)
