@@ -22,6 +22,7 @@ package com.neowit.apex.backup
 import scala.annotation.tailrec
 import java.util.Properties
 import java.io.{FileWriter, File}
+import sys.process._
 
 
 class InvalidCommandLineException(msg: String)  extends IllegalArgumentException {
@@ -84,12 +85,13 @@ object Config {
         //make sure output folder exists
         Config.mkdirs("")
 
-        val lastQueryPropsFilePath = outputFolder + File.separator + "_lastQuery.properties"
-        lastQueryPropsFile = new File(lastQueryPropsFilePath)
-        if (!lastQueryPropsFile.exists) {
-            lastQueryPropsFile.createNewFile()
+        if (null != lastRunOutputFile) {
+            lastQueryPropsFile = new File(lastRunOutputFile)
+            if (!lastQueryPropsFile.exists) {
+                lastQueryPropsFile.createNewFile()
+            }
+            lastQueryProps.load(scala.io.Source.fromFile(lastRunOutputFile).bufferedReader())
         }
-        lastQueryProps.load(scala.io.Source.fromFile(lastQueryPropsFilePath).bufferedReader())
     }
 
 
@@ -131,7 +133,8 @@ object Config {
     def getProperty(propName:String):String = {
         val cmdLineValue = options.get(propName)
         val configValue = mainProps.getProperty(propName)
-        if (None != cmdLineValue) cmdLineValue.toString else configValue
+        val res = if (None != cmdLineValue) cmdLineValue.toString else configValue
+        evalShellCommands(res)
     }
     def getProperty(propName:String, alterConf:Properties):String = {
         val cmdLineValue = options.get(propName)
@@ -145,7 +148,31 @@ object Config {
         if (null == res)
             throw new MissingConfigParameterException("missing parameter " + propName)
 
-        res.toString
+        evalShellCommands(res.toString)
+    }
+
+    /**
+     * if there are any shell commands then evaluate them and return result
+     * @param str shell commands are denoted by `something ...` syntax
+     */
+    def evalShellCommands(str: String) = {
+        def evalOne(curStr: String): String = {
+            val firstIndex = curStr.indexOf("`")
+            val secondIndex = curStr.indexOf("`", firstIndex+1)
+            if (firstIndex >=0 && secondIndex >0) {
+                val expr = curStr.substring(firstIndex+1, secondIndex)
+                val res1 = expr.!!
+                //remove end of line sequence if present
+                val result = "\n$".r.replaceFirstIn(res1, "")
+                evalOne(curStr.substring(0, firstIndex) + result + curStr.substring(secondIndex+1))
+
+            } else curStr
+        }
+
+        if (null == str)
+            str
+        else
+            evalOne(str)
     }
     def username = getProperty("sf.username", credProps)
     def password = getProperty("sf.password", credProps)
@@ -165,11 +192,15 @@ object Config {
 
     def globalWhere = getProperty("backup.global.where")
 
+    def lastRunOutputFile = getProperty("lastRunOutputFile")
+
     def storeLastModifiedDate(objectApiName: String, formattedDateTime: String) {
 
-        lastQueryProps.setProperty(objectApiName.toLowerCase, formattedDateTime)
-        val writer = new FileWriter(lastQueryPropsFile)
-        lastQueryProps.store(writer, "time stamps when last queried each object")
+        if (null != lastQueryPropsFile) {
+            lastQueryProps.setProperty(objectApiName.toLowerCase, formattedDateTime)
+            val writer = new FileWriter(lastQueryPropsFile)
+            lastQueryProps.store(writer, "time stamps when last queried each object")
+        }
     }
 
     def getStoredLastModifiedDate(objectApiName: String): String = {

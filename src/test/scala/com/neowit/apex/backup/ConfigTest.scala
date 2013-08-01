@@ -36,6 +36,10 @@ object ConfigTest {
 
 }
 class ConfigTest extends TestCase("Config") {
+    def isUnix = {
+        val os = System.getProperty("os.name").toLowerCase
+        os.contains("nux") || os.contains("mac")
+    }
     val FAIL = false
 
     def testNoCommandParams() {
@@ -85,4 +89,33 @@ class ConfigTest extends TestCase("Config") {
         //Config.load(List("--config", "/some/path"))
         //Config.mainProps.setProperty("prop1", "value1")
     }
+    def testShellEvaluation() {
+        if (isUnix) {
+            val s1 = "nothing to evaluate"
+            assertEquals(s1, Config.evalShellCommands(s1))
+
+            val s2 = "`broken string"
+            assertEquals(s2, Config.evalShellCommands(s2))
+
+            val s3 = "`echo abcd`"
+            assertEquals("abcd", Config.evalShellCommands(s3))
+
+            val s4 = """`echo abcd`"""
+            assertEquals("abcd", Config.evalShellCommands(s4))
+
+            val s5 = """some text`echo abcd`"""
+            assertEquals("some textabcd", Config.evalShellCommands(s5))
+
+            val s6 = """text before`echo abcd`text after"""
+            assertEquals("text beforeabcdtext after", Config.evalShellCommands(s6))
+
+            val s7 = """text before`echo abcd`text after`echo efgh`"""
+            assertEquals("text beforeabcdtext afterefgh", Config.evalShellCommands(s7))
+
+            //val s8 = """before`date +%Y%m%d-%H:%m`after"""
+            //assertEquals("before2013after", Config.evalShellCommands(s8))
+        }
+
+    }
+
 }
