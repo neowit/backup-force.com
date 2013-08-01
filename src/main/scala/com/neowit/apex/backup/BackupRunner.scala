@@ -57,7 +57,7 @@ object BackupRunner {
         println("Auth EndPoint: "+config.getAuthEndpoint)
         println("Service EndPoint: "+config.getServiceEndpoint)
         println("Username: "+config.getUsername)
-        println("SessionId: "+config.getSessionId)
+        //println("SessionId: "+config.getSessionId)
 
         //list of objects that have custom SOQL query defined
         val customSoqlObjects = Config.objectsWithCustomSoql

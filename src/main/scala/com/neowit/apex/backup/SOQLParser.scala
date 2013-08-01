@@ -22,32 +22,26 @@ package com.neowit.apex.backup
 
 class SOQLParser(soqlStr:String) {
 
-    val twoParts = """select (.*) from (.*)""".r
-    val fourParts = """select (.*) from (.*) where (.*) limit (.*)""".r
-    val selectLimit = """select (.*)from(.*) limit (.*)""".r
-    val selectWhere = """select (.*) from (.*) where (.*)""".r
+    val twoParts = """select (.*) from (\w*)""".r
+    val threeParts = """select (.*) from (\w*)(.*)""".r
 
-    private val (selectVal, fromVal, whereVal, limitVal) = soqlStr.toLowerCase match {
-        case fourParts(sel, frm, wh, lim) => (sel, frm, wh, lim.trim)
-        case selectLimit(sel, frm, lim)  => (sel, frm, None, lim.trim)
-        case selectWhere(sel, frm, wh)  => (sel, frm, wh, None)
-        case twoParts(sel, frm) => (sel, frm, None, None)
-        case _ => (None, None, None, None)
+    private val (selectVal, fromVal, tailVal) = soqlStr.toLowerCase match {
+        case twoParts(sel, frm) => (sel, frm, None)
+        case threeParts(sel, frm, rest) => (sel, frm, rest)
+        case _ => (None, None, None)
     }
     def select = getAsString(selectVal)
     def from = getAsString(fromVal)
-    def where = {
-        var whereStr = getAsString(whereVal)
+    def tail = {
+        var tailStr = getAsString(tailVal)
         val token = "$object.lastmodifieddate"
-        if (whereStr.contains(token))
-            whereStr = whereStr.replaceAll("\\" + token, Config.getStoredLastModifiedDate(from))
+        if (tailStr.contains(token))
+            tailStr = tailStr.replaceAll("\\" + token, Config.getStoredLastModifiedDate(from))
 
-        whereStr
+        tailStr
     }
-    def limit = getAsString(limitVal)
     def fields:List[String] = if ("*" == select) List("*") else select.split(",").map(fName => fName.trim).toList
-    def hasWhere = where.length > 0
-    def hasLimit = limit.length > 0
+    def hasTail = tail.length > 0
     def isAllFields = fields == List("*")
 
     private def getAsString(strVal:Any) = strVal match {

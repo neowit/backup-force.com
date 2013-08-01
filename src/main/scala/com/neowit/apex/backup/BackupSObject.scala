@@ -64,8 +64,7 @@ class BackupSObject(connection:PartnerConnection, objectApiName:String ) {
         require(null != Config.outputFolder, "config file missing 'outputFolder' value")
 
         val queryString = {"select " + fieldList.mkString(",") + " from " + objectApiName +
-            (if (soqlParser.hasWhere) " where " + soqlParser.where else "") +
-            (if (soqlParser.hasLimit) " limit " + soqlParser.limit  else "")}
+                            (if (soqlParser.hasTail) " " + soqlParser.tail else "") }
 
         val file = new File(Config.outputFolder + File.separator + objectApiName + ".csv")
         file.createNewFile()
