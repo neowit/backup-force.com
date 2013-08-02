@@ -66,15 +66,18 @@ class BackupSObject(connection:PartnerConnection, objectApiName:String ) {
         val queryString = {"select " + fieldList.mkString(",") + " from " + objectApiName +
                             (if (soqlParser.hasTail) " " + soqlParser.tail else "") }
 
-        println("about to start:  " + Config.outputFolder + File.separator + objectApiName + ".csv")
-        val file = new File(Config.outputFolder + File.separator + objectApiName + ".csv")
-        file.createNewFile()
-        val writer = new FileWriter(file)
-        val csvWriter = new com.sforce.bulk.CsvWriter(fieldList.toArray[String], writer)
+        var writerNeedsClosing = false
+        lazy val csvWriter = {
+            println("about to start:  " + Config.outputFolder + File.separator + objectApiName + ".csv")
+            val file = new File(Config.outputFolder + File.separator + objectApiName + ".csv")
+            file.createNewFile()
+            val writer = new FileWriter(file)
+            writerNeedsClosing = true
+            new com.sforce.bulk.CsvWriter(fieldList.toArray[String], writer)
+        }
 
         var result = false
         val timeStampCal = connection.getServerTimestamp.getTimestamp
-        //val format = new java.text.SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'")
         val format = new java.text.SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ssZ")
 
         try {
@@ -108,7 +111,9 @@ class BackupSObject(connection:PartnerConnection, objectApiName:String ) {
             case ex: MalformedQueryFault if ex.getExceptionMessage.indexOf("Implementation restriction:") >=0  =>
                 println(ex); println("Object " + objectApiName +" can not be queried due to Implementation restriction")
         }
-        csvWriter.endDocument()
+        if (writerNeedsClosing) {
+            csvWriter.endDocument()
+        }
 
         result
     }
