@@ -22,7 +22,7 @@ package com.neowit.apex.backup
 import scala.annotation.tailrec
 import java.util.Properties
 import java.io.{FileWriter, File}
-import sys.process._
+import scala.sys.process._
 
 
 class InvalidCommandLineException(msg: String)  extends IllegalArgumentException {
@@ -161,9 +161,10 @@ object Config {
             val secondIndex = curStr.indexOf("`", firstIndex+1)
             if (firstIndex >=0 && secondIndex >0) {
                 val expr = curStr.substring(firstIndex+1, secondIndex)
-                val res1 = expr.!!
+                //val res1 = expr.!!
                 //remove end of line sequence if present
-                val result = "\n$".r.replaceFirstIn(res1, "")
+                //val result = "\n$".r.replaceFirstIn(res1, "")
+                val result = Process(expr).lines.head
                 evalOne(curStr.substring(0, firstIndex) + result + curStr.substring(secondIndex+1))
 
             } else curStr
@@ -218,8 +219,10 @@ object Config {
         val path = outputFolder + File.separator + dirName
         //check that folder exists
         val f = new File(path)
-        if (!f.exists())
-            f.mkdirs()
+        if (!f.isDirectory) {
+            if (!f.mkdirs())
+                throw new RuntimeException("Failed to create folder: " + path)
+        }
 
         path
     }

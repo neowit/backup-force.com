@@ -66,6 +66,7 @@ class BackupSObject(connection:PartnerConnection, objectApiName:String ) {
         val queryString = {"select " + fieldList.mkString(",") + " from " + objectApiName +
                             (if (soqlParser.hasTail) " " + soqlParser.tail else "") }
 
+        println("about to start:  " + Config.outputFolder + File.separator + objectApiName + ".csv")
         val file = new File(Config.outputFolder + File.separator + objectApiName + ".csv")
         file.createNewFile()
         val writer = new FileWriter(file)

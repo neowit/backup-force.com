@@ -114,6 +114,8 @@ class ConfigTest extends TestCase("Config") {
 
             //val s8 = """before`date +%Y%m%d-%H:%m`after"""
             //assertEquals("before2013after", Config.evalShellCommands(s8))
+            val s9 = "I:/SFDC-Exports/backup-force.com/extracts/`date +%Y%m%d-%H%M`"
+            println(Config.evalShellCommands(s9))
         }
 
     }
