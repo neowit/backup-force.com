@@ -189,11 +189,13 @@ object Config {
     def objectsWithCustomSoql = mainProps.stringPropertyNames().toArray.filter(propName => propName.toString.startsWith("backup.soql."))
         .map(propName => propName.toString.replace("backup.soql.", "")).toSet[String]
 
-    def outputFolder = getProperty("outputFolder")
+
+    //outputFolder value should be evaluated only once, otherwise different objects may end up in different folders
+    lazy val outputFolder = getProperty("outputFolder")
+    lazy val lastRunOutputFile = getProperty("lastRunOutputFile")
 
     def globalWhere = getProperty("backup.global.where")
 
-    def lastRunOutputFile = getProperty("lastRunOutputFile")
 
     def storeLastModifiedDate(objectApiName: String, formattedDateTime: String) {
 
