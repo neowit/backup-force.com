@@ -66,10 +66,12 @@ class BackupSObject(connection:PartnerConnection, objectApiName:String ) {
         val queryString = {"select " + fieldList.mkString(",") + " from " + objectApiName +
                             (if (soqlParser.hasTail) " " + soqlParser.tail else "") }
 
+        val outputFilePath = Config.outputFolder + File.separator + objectApiName + ".csv"
         var writerNeedsClosing = false
         lazy val csvWriter = {
-            println("about to start:  " + Config.outputFolder + File.separator + objectApiName + ".csv")
-            val file = new File(Config.outputFolder + File.separator + objectApiName + ".csv")
+            println("about to start:  " + outputFilePath)
+            Config.HookEachBefore.execute(objectApiName, outputFilePath)
+            val file = new File(outputFilePath)
             file.createNewFile()
             val writer = new FileWriter(file)
             writerNeedsClosing = true
@@ -101,6 +103,10 @@ class BackupSObject(connection:PartnerConnection, objectApiName:String ) {
                     }
                 } while (!doExit)
             }
+            if (writerNeedsClosing) {
+                csvWriter.endDocument()
+                Config.HookEachAfter.execute(objectApiName, outputFilePath, size)
+            }
             println(objectApiName + ": " + size)
             result = true
             //store date/time in lastQuery.properties
@@ -110,9 +116,6 @@ class BackupSObject(connection:PartnerConnection, objectApiName:String ) {
             case ex: InvalidFieldFault => println(ex); if (allowGlobalWhere) println("Will try once again without global.where")
             case ex: MalformedQueryFault if ex.getExceptionMessage.indexOf("Implementation restriction:") >=0  =>
                 println(ex); println("Object " + objectApiName +" can not be queried due to Implementation restriction")
-        }
-        if (writerNeedsClosing) {
-            csvWriter.endDocument()
         }
 
         result

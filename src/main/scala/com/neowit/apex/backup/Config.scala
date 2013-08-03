@@ -175,18 +175,18 @@ object Config {
         else
             evalOne(str)
     }
-    def username = getProperty("sf.username", credProps)
-    def password = getProperty("sf.password", credProps)
-    def endpoint = {
+    lazy val username = getProperty("sf.username", credProps)
+    lazy val password = getProperty("sf.password", credProps)
+    lazy val endpoint = {
         val serverUrl = getProperty("sf.serverurl", credProps)
         if (null != serverUrl)
             serverUrl + "/services/Soap/u/28.0"
         else
             null
     }
-    def backupObjects = getProperty("backup.objects")
+    lazy val backupObjects = getProperty("backup.objects")
 
-    def objectsWithCustomSoql = mainProps.stringPropertyNames().toArray.filter(propName => propName.toString.startsWith("backup.soql."))
+    lazy val objectsWithCustomSoql = mainProps.stringPropertyNames().toArray.filter(propName => propName.toString.startsWith("backup.soql."))
         .map(propName => propName.toString.replace("backup.soql.", "")).toSet[String]
 
 
@@ -194,8 +194,12 @@ object Config {
     lazy val outputFolder = getProperty("outputFolder")
     lazy val lastRunOutputFile = getProperty("lastRunOutputFile")
 
-    def globalWhere = getProperty("backup.global.where")
+    lazy val globalWhere = getProperty("backup.global.where")
 
+    lazy val hookGlobalBefore = getProperty("hook.global.before")
+    lazy val hookGlobalAfter = getProperty("hook.global.after")
+    lazy val hookEachBefore = getProperty("hook.each.before")
+    lazy val hookEachAfter = getProperty("hook.each.after")
 
     def storeLastModifiedDate(objectApiName: String, formattedDateTime: String) {
 
@@ -229,5 +233,59 @@ object Config {
         path
     }
 
+    abstract class Hook () {
+        def scriptPath:String
+        def defaultArgs:Seq[String] = Seq(scriptPath, outputFolder, lastRunOutputFile)
+        def execute(args: Seq[String] = Seq()):Int = {
+            if (null != scriptPath)
+                Process(scriptPath, defaultArgs ++ args).!
+            else
+                0
+        }
+    }
+
+    /**
+     * hook.global.before - script run before process starts
+     * params:
+     * - full path to output folder
+     * - full path to lastRunOutputFile
+     */
+    object HookGlobalBefore extends Hook {
+        lazy val scriptPath = getProperty("hook.global.before")
+    }
+
+    object HookGlobalAfter extends Hook {
+        lazy val scriptPath = getProperty("hook.global.after")
+    }
+    /**
+     * hook.each.before - script run before each Object process starts
+     * params:
+     * - full path to output folder
+     * - full path to lastRunOutputFile
+     * - Object type name
+     * - full path to <objecttype>.csv which will be created
+     */
+    object HookEachBefore extends Hook {
+        lazy val scriptPath = getProperty("hook.each.before")
+        def execute(objectApiName: String, outputCsvPath: String):Int = {
+            execute(Seq(objectApiName, outputCsvPath))
+        }
+    }
+
+    /**
+     * hook.each.before - script run before each Object process starts
+     * params:
+     * - full path to output folder
+     * - full path to lastRunOutputFile
+     * - Object type name
+     * - full path to <objecttype>.csv which will be created
+     * - number of saved records
+     */
+    object HookEachAfter extends Hook {
+        lazy val scriptPath = getProperty("hook.each.after")
+        def execute(objectApiName: String, outputCsvPath: String, numOfRecords: Int):Int = {
+            execute(Seq(objectApiName, outputCsvPath, numOfRecords.toString))
+        }
+    }
 }
 

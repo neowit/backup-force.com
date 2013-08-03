@@ -76,9 +76,15 @@ object BackupRunner {
         val allSobjectSet = mainSObjectsSet ++ customSoqlObjects
 
         require(!allSobjectSet.isEmpty, "config file contains no objects to backup")
+        if (!allSobjectSet.isEmpty) {
+            Config.HookGlobalBefore.execute()
+        }
         for (objApiName <- allSobjectSet) {
             val backuper = new BackupSObject(connection, objApiName)
             backuper.run()
+        }
+        if (!allSobjectSet.isEmpty) {
+            Config.HookGlobalAfter.execute()
         }
     }
 }
