@@ -116,9 +116,11 @@ class BackupSObject(connection:PartnerConnection, objectApiName:String ) {
             case ex: ApiQueryFault if ex.getExceptionMessage.indexOf("Implementation restriction:") >=0  =>
                 println("Object " + objectApiName +" can not be queried in batch mode due to Implementation restriction")
                 println(ex)
+                println(ex.getStackTraceString)
             case ex:Throwable =>
                 println("Object " + objectApiName +" retrieve failed")
                 println(ex)
+                println(ex.getStackTraceString)
         }
 
         result
@@ -135,7 +137,10 @@ class BackupSObject(connection:PartnerConnection, objectApiName:String ) {
 
             val fileName = Config.getProperty("backup.extract.file") match {
                 case str:String if str.length >0 =>
-                    val fileName = record.getField(fileNameField).toString
+                    val fileName = record.getField(fileNameField) match {
+                        case null => ""
+                        case x => x.toString
+                    }
                     val extIndex1 = fileName.lastIndexOf(".")
                     val extIndex = if (extIndex1 >= 0) extIndex1 else fileName.length
                     val name = fileName.substring(0, extIndex)
@@ -146,10 +151,15 @@ class BackupSObject(connection:PartnerConnection, objectApiName:String ) {
 
             if (null != fileName) {
                 val file = new File(Config.mkdirs(record.getType) + File.separator + fileName)
-                val buffer = record.getField(fileBodyField).toString.getBytes
-                val output = new FileOutputStream(file)
-                output.write(Base64.decode(buffer))
-                output.close()
+                val buffer = record.getField(fileBodyField) match {
+                    case null => Array[Byte]()
+                    case x => x.toString.getBytes()
+                }
+                if (buffer.length > 0) {
+                    val output = new FileOutputStream(file)
+                    output.write(Base64.decode(buffer))
+                    output.close()
+                }
             }
         }
     }
