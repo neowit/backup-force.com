@@ -20,9 +20,8 @@
 package com.neowit.apex.backup
 
 import com.sforce.soap.partner.PartnerConnection
-import java.io.{FileOutputStream, FileNotFoundException, File, FileWriter}
-import com.sforce.soap.partner.fault.{MalformedQueryFault, InvalidFieldFault}
-import java.util.Properties
+import java.io.{FileOutputStream, File, FileWriter}
+import com.sforce.soap.partner.fault.{ApiQueryFault, InvalidFieldFault}
 import com.sforce.soap.partner.sobject.SObject
 import com.sforce.ws.util.Base64
 
@@ -114,8 +113,12 @@ class BackupSObject(connection:PartnerConnection, objectApiName:String ) {
 
         } catch {
             case ex: InvalidFieldFault => println(ex); if (allowGlobalWhere) println("Will try once again without global.where")
-            case ex: MalformedQueryFault if ex.getExceptionMessage.indexOf("Implementation restriction:") >=0  =>
-                println(ex); println("Object " + objectApiName +" can not be queried due to Implementation restriction")
+            case ex: ApiQueryFault if ex.getExceptionMessage.indexOf("Implementation restriction:") >=0  =>
+                println("Object " + objectApiName +" can not be queried in batch mode due to Implementation restriction")
+                println(ex)
+            case ex:Throwable =>
+                println("Object " + objectApiName +" retrieve failed")
+                println(ex)
         }
 
         result
