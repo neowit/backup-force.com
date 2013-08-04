@@ -39,8 +39,8 @@ class BackupSObject(connection:PartnerConnection, objectApiName:String ) {
     def run(allowGlobalWhere: Boolean): Boolean = {
         val configSoql = Config.getProperty("backup.soql." + objectApiName)
         val soql =
-            if (null != configSoql)
-                configSoql
+            if (None != configSoql)
+                configSoql.get
             else
                 "select * from " + objectApiName +
                     {if (allowGlobalWhere && null != Config.globalWhere) " where " + Config.globalWhere
@@ -136,7 +136,7 @@ class BackupSObject(connection:PartnerConnection, objectApiName:String ) {
             val fileBodyField = FILE_OBJ_TYPES(objectApiName)._2
 
             val fileName = Config.getProperty("backup.extract.file") match {
-                case str:String if str.length >0 =>
+                case Some(str) if str.length >0 =>
                     val fileName = record.getField(fileNameField) match {
                         case null => ""
                         case x => x.toString

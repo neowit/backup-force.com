@@ -63,9 +63,9 @@ object BackupRunner {
         val customSoqlObjects = Config.objectsWithCustomSoql
 
         val objListProperty = Config.backupObjects match {
-            case "*" => Set("*")
-            case x:String => x.replaceAll(" ", "").split(",").toSet[String]
-            case null => Set()
+            case Some("*") => Set("*")
+            case Some(x) => x.replaceAll(" ", "").split(",").toSet[String]
+            case None => Set()
         }
         val mainSObjectsSet =
             if (Set("*") != objListProperty)

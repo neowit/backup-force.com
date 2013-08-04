@@ -32,10 +32,27 @@ class InvalidCommandLineException(msg: String)  extends IllegalArgumentException
 }
 class MissingConfigParameterException(msg:String) extends InvalidCommandLineException
 
+trait PropertiesOption extends Properties{
+
+    def getPropertyOption(key: String): Option[String] = {
+        super.getProperty(key) match {
+            case null => None
+            case x => Some(x)
+        }
+    }
+    def getPropertyOption(key: String, defaultValue: String): Option[String] = {
+        super.getProperty(key) match {
+            case null => Some(defaultValue)
+            case x => Some(x)
+        }
+    }
+}
+
 object Config {
 
-    type OptionMap = Map[String, Any]
-    private val mainProps, credProps, lastQueryProps = new Properties()
+    type OptionMap = Map[String, String]
+    private val mainProps, credProps, lastQueryProps = new Properties() with PropertiesOption
+
     private var options:OptionMap = Map()
     private var isValidCommandLine = false
     private var lastQueryPropsFile: File = null
@@ -62,8 +79,6 @@ object Config {
                     nextOption(map ++ Map("sf.endpoint" -> value.toString), tail)
                 case "--outputFolder" :: value :: tail =>
                     nextOption(map ++ Map("outputFolder" -> value.toString), tail)
-                case "--backup.objects" :: value :: tail =>
-                    nextOption(map ++ Map("backup.objects" -> value.toString.split(',').map((s: String) => s.trim)), tail)
                 case _ =>
                     help()
                     throw new InvalidCommandLineException
@@ -85,12 +100,24 @@ object Config {
         //make sure output folder exists
         Config.mkdirs("")
 
-        if (null != lastRunOutputFile) {
-            lastQueryPropsFile = new File(lastRunOutputFile)
+        /*
+        if (None != lastRunOutputFile) {
+            lastQueryPropsFile = new File(lastRunOutputFile.get.toString)
             if (!lastQueryPropsFile.exists) {
                 lastQueryPropsFile.createNewFile()
             }
             lastQueryProps.load(scala.io.Source.fromFile(lastRunOutputFile).bufferedReader())
+        }
+        */
+        lastRunOutputFile match {
+            case None => Unit
+            case Some(fName) =>
+                lastQueryPropsFile = new File(fName)
+                if (!lastQueryPropsFile.exists) {
+                    lastQueryPropsFile.createNewFile()
+                }
+                lastQueryProps.load(scala.io.Source.fromFile(fName).bufferedReader())
+
         }
     }
 
@@ -112,50 +139,55 @@ object Config {
       --sf.username: SFDC user name
       --sf.password: SFDC user password (and token if required)
       --sf.endpoint: sfdc endpoint, e.g. https://login.salesforce.com
-      --backup.objects: comma separated list of SFDC object API names enclosed in double quotes
-                     e.g.: --backup.objects "Account, Contact, MyObject__c"
 
       Example:
       java -jar backup-force.com-1.0-SNAPSHOT-jar-with-dependencies.jar --config ~/myconf.properties
-      OR
-      java -classpath backup-force.com-1.0-SNAPSHOT-jar-with-dependencies.jar com.neowit.apex.backup.BackupRunner \
-            --config /full/path/to/config/main.conf
-
-      OR if sfdc login/pass are in a different file, e.g. Dataloader's config.properties
-
-      java -classpath backup-force.com-1.0-SNAPSHOT-jar-with-dependencies.jar com.neowit.apex.backup.BackupRunner \
-            --config /full/path/to/config/main.conf \
+      OR if sfdc login/pass are in a different file
+      java -jar backup-force.com-1.0-SNAPSHOT-jar-with-dependencies.jar --config ~/myconf.properties \
             --credentials /Volumes/TRUECRYPT1/SForce.properties
 
                  """)
     }
 
-    def getProperty(propName:String):String = {
-        val cmdLineValue = options.get(propName)
-        val configValue = mainProps.getProperty(propName)
-        val res = if (None != cmdLineValue) cmdLineValue.toString else configValue
+    def getProperty(key:String):Option[String] = getProperty(key, None)
+
+    def getProperty(key:String, defaultVal: Option[String]):Option[String] = {
+        val cmdLineValue = options.get(key)
+        val configValue = mainProps.getPropertyOption(key)
+        val res = cmdLineValue match {
+            case None => configValue match {
+                    case None => defaultVal
+                    case _ => configValue
+                }
+            case _ => cmdLineValue
+        }
         evalShellCommands(res)
     }
-    def getProperty(propName:String, alterConf:Properties):String = {
-        val cmdLineValue = options.get(propName)
-        val alterConfValue = alterConf.getProperty(propName)
-        val mainConfValue = mainProps.getProperty(propName)
 
-        val res = if (None != cmdLineValue) cmdLineValue
-                    else if (null != alterConfValue) alterConfValue
-                    else mainConfValue
+    def getProperty(key:String, alterConf:PropertiesOption):Option[String] = {
+        val cmdLineValue = options.get(key)
+        val alterConfValue = alterConf.getPropertyOption(key)
+        val mainConfValue = mainProps.getPropertyOption(key)
 
-        if (null == res)
-            throw new MissingConfigParameterException("missing parameter " + propName)
+        val res = cmdLineValue match {
+            case Some(cmdVal) => cmdLineValue
+            case None =>  alterConfValue match {
+                case Some(x) => alterConfValue
+                case None => mainConfValue
+            }
+        }
 
-        evalShellCommands(res.toString)
+        if (None == res)
+            throw new MissingConfigParameterException("missing parameter " + key)
+
+        evalShellCommands(res)
     }
 
     /**
      * if there are any shell commands then evaluate them and return result
      * @param str shell commands are denoted by `something ...` syntax
      */
-    def evalShellCommands(str: String) = {
+    def evalShellCommands(str: Option[String]) = {
         def evalOne(curStr: String): String = {
             val firstIndex = curStr.indexOf("`")
             val secondIndex = curStr.indexOf("`", firstIndex+1)
@@ -170,19 +202,19 @@ object Config {
             } else curStr
         }
 
-        if (null == str)
-            str
-        else
-            evalOne(str)
+        str match {
+            case None => None
+            case Some(x) => Option(evalOne(x))
+        }
     }
-    lazy val username = getProperty("sf.username", credProps)
-    lazy val password = getProperty("sf.password", credProps)
+    lazy val username = getProperty("sf.username", credProps).getOrElse("")
+    lazy val password = getProperty("sf.password", credProps).getOrElse("")
     lazy val endpoint = {
         val serverUrl = getProperty("sf.serverurl", credProps)
-        if (null != serverUrl)
-            serverUrl + "/services/Soap/u/28.0"
-        else
-            null
+        serverUrl match {
+            case Some(x) => x + "/services/Soap/u/28.0"
+            case None => null
+        }
     }
     lazy val backupObjects = getProperty("backup.objects")
 
@@ -191,7 +223,7 @@ object Config {
 
 
     //outputFolder value should be evaluated only once, otherwise different objects may end up in different folders
-    lazy val outputFolder = getProperty("outputFolder")
+    lazy val outputFolder = getProperty("outputFolder").getOrElse(null)
     lazy val lastRunOutputFile = getProperty("lastRunOutputFile")
 
     lazy val globalWhere = getProperty("backup.global.where")
@@ -234,13 +266,18 @@ object Config {
     }
 
     abstract class Hook () {
-        def scriptPath:String
-        def defaultArgs:Seq[String] = Seq(scriptPath, outputFolder, lastRunOutputFile)
-        def execute(args: Seq[String] = Seq()):Int = {
-            if (null != scriptPath)
-                Process(scriptPath, defaultArgs ++ args).!
-            else
-                0
+        def scriptPath:Option[String]
+        def defaultArgs:Seq[String] = {
+            val outputFolderStr = outputFolder
+            lastRunOutputFile match {
+                case Some(lrof) => Seq(scriptPath.get, outputFolderStr, lrof)
+                case None => Seq(scriptPath.get, outputFolderStr, "")
+            }
+        }
+
+        def execute(args: Seq[String] = Seq()):Int = scriptPath match{
+            case Some(path) => Process(path, defaultArgs ++ args).!
+            case None => 0
         }
     }
 
