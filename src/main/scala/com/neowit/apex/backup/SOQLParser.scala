@@ -25,7 +25,7 @@ class SOQLParser(soqlStr:String) {
     val twoParts = """select (.*) from (\w*)""".r
     val threeParts = """select (.*) from (\w*)(.*)""".r
 
-    private val (selectVal, fromVal, tailVal) = soqlStr.toLowerCase match {
+    private val (selectVal, fromVal, tailVal) = soqlStr match {
         case twoParts(sel, frm) => (sel, frm, None)
         case threeParts(sel, frm, rest) => (sel, frm, rest)
         case _ => (None, None, None)
@@ -34,11 +34,9 @@ class SOQLParser(soqlStr:String) {
     def from = getAsString(fromVal)
     def tail = {
         var tailStr = getAsString(tailVal)
-        val token = "$object.lastmodifieddate"
-        if (tailStr.contains(token))
-            tailStr = tailStr.replaceAll("\\" + token, Config.getStoredLastModifiedDate(from))
-
-        tailStr
+        //val token = "$object.lastmodifieddate"
+        val p = "(?i)\\$object\\.lastmodifieddate".r
+        p.replaceAllIn(tailStr, Config.getStoredLastModifiedDate(from))
     }
     def fields:List[String] = if ("*" == select) List("*") else select.split(",").map(fName => fName.trim).toList
     def hasTail = tail.length > 0

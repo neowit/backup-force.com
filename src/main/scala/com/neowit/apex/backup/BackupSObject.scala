@@ -40,7 +40,7 @@ class BackupSObject(connection:PartnerConnection, objectApiName:String ) {
         val configSoql = Config.getProperty("backup.soql." + objectApiName)
         val soql =
             if (null != configSoql)
-                configSoql.toLowerCase
+                configSoql
             else
                 "select * from " + objectApiName +
                     {if (allowGlobalWhere && null != Config.globalWhere) " where " + Config.globalWhere
