@@ -37,8 +37,12 @@ object BackupRunner {
             Config.help()
 
         val arglist = args.toList
-        Config.load(arglist)
-        run()
+        try {
+            Config.load(arglist)
+            run()
+        } catch {
+            case ex: InvalidCommandLineException => Config.help()
+        }
     }
 
     def run() {
@@ -52,6 +56,16 @@ object BackupRunner {
         config.setPassword(password)
         if (null != endpoint)
             config.setAuthEndpoint(endpoint)
+
+        config.setCompression(true)
+
+        /*
+        if (None != Config.getProperty("ntlmDomain"))
+            config.setNtlmDomain("ntlmDomain")
+
+        if (None != Config.getProperty("proxyHost"))
+            config.setProxy(Config.getProperty("proxyHost").get, Config.getProperty("proxyPort", Option("80")).get.toInt)
+        */
 
         val connection = com.sforce.soap.partner.Connector.newConnection(config)
         println("Auth EndPoint: "+config.getAuthEndpoint)
