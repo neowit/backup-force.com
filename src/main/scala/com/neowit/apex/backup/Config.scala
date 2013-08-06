@@ -59,7 +59,6 @@ object Config {
 
     def load(arglist: List[String]) {
         if (arglist.isEmpty) {
-            help()
             throw new InvalidCommandLineException
         }
 
@@ -67,20 +66,14 @@ object Config {
         def nextOption(map: OptionMap, list: List[String]): OptionMap = {
             list match {
                 case Nil => map
-                case "--config" :: value :: tail =>
-                    nextOption(map ++ Map("config" -> value.toString), tail)
-                case "--credentials" :: value :: tail =>
-                    nextOption(map ++ Map("credentials" -> value.toString), tail)
-                case "--sf.username" :: value :: tail =>
-                    nextOption(map ++ Map("sf.username" -> value.toString), tail)
-                case "--sf.password" :: value :: tail =>
-                    nextOption(map ++ Map("sf.password" -> value.toString), tail)
-                case "--sf.endpoint" :: value :: tail =>
-                    nextOption(map ++ Map("sf.endpoint" -> value.toString), tail)
-                case "--outputFolder" :: value :: tail =>
-                    nextOption(map ++ Map("outputFolder" -> value.toString), tail)
+                case key :: value :: tail if key.startsWith("--") => key match {
+                        case "--config" => nextOption(map ++ Map("config" -> value), tail)
+                        case "--credentials" => nextOption(map ++ Map("credentials" -> value), tail)
+                        case _ => nextOption(map ++ Map(key.drop(2) -> value), tail)
+                }
+                case value :: Nil =>
+                    throw new InvalidCommandLineException
                 case _ =>
-                    help()
                     throw new InvalidCommandLineException
             }
         }
@@ -100,15 +93,6 @@ object Config {
         //make sure output folder exists
         Config.mkdirs("")
 
-        /*
-        if (None != lastRunOutputFile) {
-            lastQueryPropsFile = new File(lastRunOutputFile.get.toString)
-            if (!lastQueryPropsFile.exists) {
-                lastQueryPropsFile.createNewFile()
-            }
-            lastQueryProps.load(scala.io.Source.fromFile(lastRunOutputFile).bufferedReader())
-        }
-        */
         lastRunOutputFile match {
             case None => Unit
             case Some(fName) =>
