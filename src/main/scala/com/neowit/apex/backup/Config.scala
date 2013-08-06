@@ -109,26 +109,28 @@ object Config {
 
     def help() {
         println( """
-      Backup force.com utility.
-      https://github.com/neowit/backup-force.com
+        Backup force.com utility.
+        https://github.com/neowit/backup-force.com
 
-      Command line parameters"
-      --help : show this text
-      --config : path to config.properties
-      --credentials : (optional)alternate config which contains login credentials
+        Command line parameters"
+        --help : show this text
+        --config : path to config.properties
+        --credentials : (optional)alternate config which contains login credentials
+        [--<any param from config file>]: (optional) all config parameters can be specified in both config file and command line.
+                        Command line parameters take precendence
 
-      If both --conf and any of the following command line parameters are specified then command line param value
-      overrides config.properties value
+        Example:
+        java -jar backup-force.com-1.0-SNAPSHOT-jar-with-dependencies.jar --config ~/myconf.properties
 
-      --sf.username: SFDC user name
-      --sf.password: SFDC user password (and token if required)
-      --sf.endpoint: sfdc endpoint, e.g. https://login.salesforce.com
-
-      Example:
-      java -jar backup-force.com-1.0-SNAPSHOT-jar-with-dependencies.jar --config ~/myconf.properties
-      OR if sfdc login/pass are in a different file
-      java -jar backup-force.com-1.0-SNAPSHOT-jar-with-dependencies.jar --config ~/myconf.properties \
+        OR if sfdc login/pass are in a different file
+        java -jar backup-force.com-1.0-SNAPSHOT-jar-with-dependencies.jar --config ~/myconf.properties \
             --credentials /Volumes/TRUECRYPT1/SForce.properties
+
+
+        In the following example username user@domain.com specified in the command line will be used,
+        regardless of whether it is also specified in config file or not
+        java -jar backup-force.com-1.0-SNAPSHOT-jar-with-dependencies.jar --config ~/myconf.properties \
+            --sf.username user@domain.com
 
                  """)
     }
@@ -165,6 +167,18 @@ object Config {
             throw new MissingConfigParameterException("missing parameter " + key)
 
         evalShellCommands(res)
+    }
+
+    /**
+     * all parameters with prefix sf. and http. can be sourced from both
+     * main config and credentials config
+     */
+    def getCredential(key: String): Option[String] = {
+        try {
+            getProperty(key, credProps)
+        } catch {
+            case ex: MissingConfigParameterException => None
+        }
     }
 
     /**

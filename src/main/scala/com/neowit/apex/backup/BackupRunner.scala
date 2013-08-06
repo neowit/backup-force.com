@@ -47,25 +47,41 @@ object BackupRunner {
 
     def run() {
 
-        val username = Config.username
-        val password = Config.password
-        val endpoint = Config.endpoint
 
         val config = new com.sforce.ws.ConnectorConfig()
-        config.setUsername(username)
-        config.setPassword(password)
+        config.setUsername(Config.username)
+        config.setPassword(Config.password)
+
+        val endpoint = Config.endpoint
         if (null != endpoint)
             config.setAuthEndpoint(endpoint)
 
         config.setCompression(true)
 
-        /*
-        if (None != Config.getProperty("ntlmDomain"))
-            config.setNtlmDomain("ntlmDomain")
+        val proxyHost = Config.getCredential("http.proxyHost")
+        val proxyPort = Config.getCredential("http.proxyPort")
+        if (None != proxyHost && None != proxyPort)
+            config.setProxy(proxyHost.get, proxyPort.get.toInt)
 
-        if (None != Config.getProperty("proxyHost"))
-            config.setProxy(Config.getProperty("proxyHost").get, Config.getProperty("proxyPort", Option("80")).get.toInt)
-        */
+        val proxyUsername = Config.getCredential("http.proxyUsername")
+        if (None != proxyUsername )
+            config.setProxyUsername(proxyUsername.get)
+
+        val proxyPassword = Config.getCredential("http.proxyPassword")
+        if (None != proxyPassword )
+            config.setProxyPassword(proxyPassword.get)
+
+        val ntlmDomain = Config.getCredential("http.ntlmDomain")
+        if (None != ntlmDomain )
+            config.setNtlmDomain(ntlmDomain.get)
+
+        val connectionTimeoutSecs = Config.getCredential("http.connectionTimeoutSecs")
+        if (None != connectionTimeoutSecs )
+            config.setConnectionTimeout(connectionTimeoutSecs.get.toInt * 1000)
+
+        val readTimeoutSecs = Config.getCredential("http.readTimeoutSecs")
+        if (None != readTimeoutSecs )
+            config.setReadTimeout(readTimeoutSecs.get.toInt * 1000)
 
         val connection = com.sforce.soap.partner.Connector.newConnection(config)
         println("Auth EndPoint: "+config.getAuthEndpoint)
