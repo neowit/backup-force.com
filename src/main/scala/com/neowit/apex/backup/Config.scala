@@ -163,9 +163,6 @@ object Config {
             }
         }
 
-        if (None == res)
-            throw new MissingConfigParameterException("missing parameter " + key)
-
         evalShellCommands(res)
     }
 
