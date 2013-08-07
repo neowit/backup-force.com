@@ -3,7 +3,7 @@
     <modelVersion>4.0.0</modelVersion>
     <groupId>com.neowit.apex.backup</groupId>
     <artifactId>backup-force.com</artifactId>
-    <version>0.1-SNAPSHOT</version>
+    <version>0.3.2-SNAPSHOT</version>
     <inceptionYear>2013</inceptionYear>
     <properties>
         <scala.version>2.10.2</scala.version>
@@ -11,7 +11,7 @@
     <scm>
         <connection>scm:git:git://github.com/neowit/backup-force.com.git</connection>
         <developerConnection>scm:git:git://github.com/neowit/backup-force.com.git</developerConnection>
-        <url>http://github.com/forcedotcom/wsc</url>
+        <url>http://github.com/neowit/backup-force.com</url>
     </scm>
 
     <repositories>
@@ -41,11 +41,15 @@
             <groupId>org.scala-lang</groupId>
             <artifactId>scala-library</artifactId>
             <version>${scala.version}</version>
+            <!--
+            <classifier>sources</classifier>
+            -->
         </dependency>
+
         <dependency>
-            <groupId>junit</groupId>
-            <artifactId>junit</artifactId>
-            <version>3.8.1</version>
+            <groupId>org.scalatest</groupId>
+            <artifactId>scalatest_2.10</artifactId>
+            <version>1.9.1</version>
             <scope>test</scope>
         </dependency>
         <dependency>
@@ -58,6 +62,7 @@
             <artifactId>partner-wsdl</artifactId>
             <version>28.0</version>
         </dependency>
+
     </dependencies>
 
     <build>
@@ -98,8 +103,41 @@
                 </executions>
                 <configuration>
                     <scalaVersion>${scala.version}</scalaVersion>
+                    <args>
+                        <arg>-make:transitive</arg>
+                        <arg>-dependencyfile</arg>
+                        <arg>${project.build.directory}/.scala_dependencies</arg>
+                    </args>
                 </configuration>
             </plugin>
+			<!-- disable surefire -->
+			<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-surefire-plugin</artifactId>
+				<version>2.7</version>
+				<configuration>
+					<skipTests>true</skipTests>
+				</configuration>
+			</plugin>
+			<!-- enable scalatest -->
+			<plugin>
+				<groupId>org.scalatest</groupId>
+				<artifactId>scalatest-maven-plugin</artifactId>
+				<version>1.0-M2</version>
+				<configuration>
+					<reportsDirectory>${project.build.directory}/surefire-reports</reportsDirectory>
+					<junitxml>.</junitxml>
+					<filereports>WDF TestSuite.txt</filereports>
+				</configuration>
+				<executions>
+					<execution>
+						<id>test</id>
+						<goals>
+							<goal>test</goal>
+						</goals>
+					</execution>
+				</executions>
+			</plugin>
             <!--
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
