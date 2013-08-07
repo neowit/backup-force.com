@@ -33,18 +33,20 @@ Java JDK/JRE, Version 6.1 or greater
 * Wildcard '*' support for easy field list definition, e.g. `select * from Account`, as well as to include all objects without listing them, e.g. `backup.objects=*`
   - field wildcard is particularly useful because it makes your config resistant to Org config changes (e.g. field removed/added)
 * Config file is order of magnitude smaller and simpler than process-conf.xml used by Apex DataLoader.  
-	Here is an example of full config (excluding login credentials) which allows to extract 3 fields from Accounts, all fields from Opportunities with Amount > 100 and all fields from all Contacts into 3 separate .csv files:  
-	
-    outputFolder=/home/user/extract  
-    backup.objects=Account, Contact, Opportunity  
-    backup.soql.Account=select Id, Name, Description from Account  
+	Here is an example of full config (excluding login credentials) which allows to extract 3 fields from Accounts, all fields from Opportunities with Amount > 100 and all fields from all Contacts into 3 separate .csv files:
+<pre>
+    outputFolder=/home/user/extract
+    backup.objects=Account, Contact, Opportunity
+    backup.soql.Account=select Id, Name, Description from Account
     backup.soql.Opportunity=select * from Opportunity where Amount > 100
-	
+</pre>
 * Incremental data retrieval for Objects that support LastModifiedDate field
     See `$Object.LastModifiedDate` in ./config/sample-configuration.properties
 * Connection details, such as Salesforce access credentials and proxy, can be specified either in main config or in a separate file, this is useful if you store credentials securely or use several retrieve configs for the same Org, see `--credentials` command line key
-* Shell Expressions evaluation - shell commands can be embedded in all config values in order to make configuration more dynamic, for example, here is how you could define dynamically created output folder for daily incremental extract/backup:   
+* Shell Expressions evaluation - shell commands can be embedded in all config values in order to make configuration more dynamic, for example, here is how you could define dynamically created output folder for daily incremental extract/backup:
+<pre>
     outputFolder=/home/user/extract/\`date +%Y%m%d-%H%M\`
+</pre>
 * Hooks - execute user defined scripts  
 	- before/after main process start
 	- before/after each object type  
