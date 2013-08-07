@@ -25,6 +25,12 @@ import com.sforce.soap.partner.fault.{ApiQueryFault, InvalidFieldFault}
 import com.sforce.soap.partner.sobject.SObject
 import com.sforce.ws.util.Base64
 
+object ZuluTime {
+    val zulu = new java.text.SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'")
+    zulu.setTimeZone(java.util.TimeZone.getTimeZone("GMT"))
+    def format(d: java.util.Date):String = zulu.format(d)
+
+}
 
 class BackupSObject(connection:PartnerConnection, objectApiName:String ) {
     val ALLOW_GLOBAL_WHERE = true
@@ -78,8 +84,8 @@ class BackupSObject(connection:PartnerConnection, objectApiName:String ) {
         }
 
         var result = false
+        //get current server time, i.e. time at the time when query started
         val timeStampCal = connection.getServerTimestamp.getTimestamp
-        val format = new java.text.SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ssZ")
 
         try {
             var queryResults = connection.query(queryString)
@@ -109,7 +115,7 @@ class BackupSObject(connection:PartnerConnection, objectApiName:String ) {
             println(objectApiName + ": " + size)
             result = true
             //store date/time in lastQuery.properties
-            Config.storeLastModifiedDate(objectApiName, format.format(timeStampCal.getTime))
+            Config.storeLastModifiedDate(objectApiName, ZuluTime.format(timeStampCal.getTime))
 
         } catch {
             case ex: InvalidFieldFault => println(ex); if (allowGlobalWhere) println("Will try once again without global.where")
