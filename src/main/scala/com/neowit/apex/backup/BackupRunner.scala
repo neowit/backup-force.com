@@ -33,15 +33,15 @@ object BackupRunner {
     }
 
     def main(args: Array[String]) {
-        if (args.isEmpty)
-            Config.help()
-
-        val arglist = args.toList
-        try {
-            Config.load(arglist)
-            run()
-        } catch {
-            case ex: InvalidCommandLineException => Config.help()
+        if (args.isEmpty) {
+            new ConfigGenerator
+        } else {
+            try {
+                Config.load(args.toList)
+                run()
+            } catch {
+                case ex: InvalidCommandLineException => Config.help()
+            }
         }
     }
 
