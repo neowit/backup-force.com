@@ -49,6 +49,10 @@ trait PropertiesOption extends Properties{
 }
 
 object Config {
+    def isUnix = {
+        val os = System.getProperty("os.name").toLowerCase
+        os.contains("nux") || os.contains("mac")
+    }
 
     type OptionMap = Map[String, String]
     private val mainProps, credProps, lastQueryProps = new Properties() with PropertiesOption

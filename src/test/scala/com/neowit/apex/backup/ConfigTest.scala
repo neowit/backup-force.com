@@ -25,10 +25,8 @@ import scala.sys.process.Process
 import java.util.Properties
 
 class ConfigTest extends FunSuite {
-    def isUnix = {
-        val os = System.getProperty("os.name").toLowerCase
-        os.contains("nux") || os.contains("mac")
-    }
+    val isUnix = Config.isUnix
+
     val FAIL = false
     def withFile(testCode: (File, FileWriter) => Any) {
         val file = File.createTempFile("test", ".properties") // create the fixture

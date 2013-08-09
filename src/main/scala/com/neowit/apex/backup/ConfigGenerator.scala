@@ -19,32 +19,64 @@
 
 package com.neowit.apex.backup
 
-import java.util.{ResourceBundle, Properties}
+import java.util.Properties
+import java.io.{FileWriter, File}
 
 class ConfigGenerator {
-
+    //println(jarPath )
     println()
     println(
         """You started the utility without --config command line parameter.
     Would you like to:
     1. Generate config file interactively
     2. See list of command line options
-    3. Exit and restart with --config command line parameter
+    3. Exit
         """)
     readLine("Enter 1, 2 or 3: ") match {
         case "1" =>
-            val config = requestProperties()
+            val configPath = requestFilePath()
+            val config = requestProperties(configPath)
             //save config
+            if (!config.isEmpty) {
+                val writer = new FileWriter(configPath)
+                config.store(writer, " backup-force.com configuration file \n see example of all possible properties at: http://bit.ly/195WlEF")
+                println("\nYou can now start the process using following command line: \n")
+                println("java -jar " + jarPath + " --config " + new File(configPath).getAbsolutePath + "\n")
+            }
         case "2" => Config.help(); System.exit(0)
         case _ => System.exit(0)
     }
 
-
-    def requestProperties(): PropertiesOption = {
+    def requestFilePath() = {
+        val pathExample = if (Config.isUnix) "/home/user/myconf.properties" else "c:/extract/myconf.properties"
+        var fPath = ""
+        while (null == fPath || fPath.isEmpty) {
+            fPath = readLine( "Enter the full path and the name of the config file to be created. \nFor example: "+ pathExample + "\n" )
+        }
+        fPath
+    }
+    def requestProperties(configPath: String): PropertiesOption = {
         val template, config = new Properties() with PropertiesOption
         template.load(getClass.getResourceAsStream("/configuration-template.properties"))
 
-        //template.load(scala.io.Source.fromFile("/resources/configuration-template.properties").bufferedReader())
+        if (null != configPath) {
+            //check if this is existing file
+            val f:File = new File(configPath)
+            if (f.exists()) {
+                if (!f.canWrite) {
+                    println("File " + configPath + " is not writable.")
+                    System.exit(0)
+                }
+
+                println("It appears file " + configPath + " already exists.")
+                if ("a" == readLine("Enter 'a' to abort the process, any other key - continue: ")) {
+                    System.exit(0)
+                }
+                config.load(scala.io.Source.fromFile(configPath).bufferedReader())
+
+            }
+        }
+
         val sections = template.getPropertyOption("sections").get.split(",")
         for (s <- sections; section = s.trim) {
 
@@ -61,16 +93,14 @@ class ConfigGenerator {
                 case Some(x) =>
                     println("========================================================")
                     println("# " + x)
-                    println()
                 case None =>
             }
         }
         def displaySectionDescription(sectionKey: String) = {
             template.getPropertyOption(sectionKey + ".description") match {
                 case Some(x) =>
-                    //println()
-                    println(x)
                     println()
+                    println(x)
                 case None =>
             }
         }
@@ -90,17 +120,24 @@ class ConfigGenerator {
                     case None =>
                 }
                 template.getPropertyOption(sectionKey + "." + key)  match {
-                    case Some(x) =>
-                        println()
-                        println("Example value: " + x)
-                    case None =>
+                    case Some(x) if !x.isEmpty => println(" Example value: " + x)
+                    case None => ""
+                    case _ => ""
                 }
-                //TODO use formatted readline(text: String, args: Any*)
+                //println()
+                val currentValue = config.getPropertyOption(key) match {
+                  case Some(x) if !x.isEmpty => " [Current value: " + x + "]"
+                  case None => ""
+                  case _ => ""
+                }
                 var noExit = true
                 while (noExit) {
-                    val res = readLine(key + "=")
+                    val res = readLine(key + currentValue + "=")
                     if (null != res && !res.isEmpty) {
                         config.setProperty(key, res)
+                        noExit = false
+                    } else if (!currentValue.isEmpty) {
+                        //keep current value
                         noExit = false
                     } else if (Option("true") == template.getPropertyOption(sectionKey + ".required")) {
                         println(key + " is required")
@@ -113,6 +150,10 @@ class ConfigGenerator {
         config
     }
 
+    def jarPath = {
+        val path = BackupRunner.getClass.getProtectionDomain.getCodeSource.getLocation.toURI.getPath
+        path
+    }
 
 }
 
