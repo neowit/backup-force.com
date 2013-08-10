@@ -42,7 +42,9 @@ Java JDK/JRE, Version 6.1 or greater
 </pre>
 * Incremental data retrieval for Objects that support LastModifiedDate field
     See `$Object.LastModifiedDate` in ./config/sample-configuration.properties
-* Connection details, such as Salesforce access credentials and proxy, can be specified either in main config or in a separate file, this is useful if you store credentials securely or use several retrieve configs for the same Org, see `--credentials` command line key
+* Multiple config files  
+  In some cases you may want to resuse same connection details with multiple extract/backup configurations. For such cases you can specify more than one --config parameters on the command line. Values from all specified config files will be merged (if there are conflicts then last config wins). For example    
+   `… --config ./extract.properties --config ./connection.properties`
 * Shell Expressions evaluation - shell commands can be embedded in all config values in order to make configuration more dynamic, for example, here is how you could define dynamically created output folder for daily incremental extract/backup:
 <pre>
     outputFolder=/home/user/extract/\`date +%Y%m%d-%H%M\`

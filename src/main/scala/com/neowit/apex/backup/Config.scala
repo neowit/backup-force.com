@@ -23,6 +23,7 @@ import scala.annotation.tailrec
 import java.util.Properties
 import java.io.{FileWriter, File}
 import scala.sys.process._
+import scala.collection.mutable.ListBuffer
 
 
 class InvalidCommandLineException(msg: String)  extends IllegalArgumentException {
@@ -30,7 +31,7 @@ class InvalidCommandLineException(msg: String)  extends IllegalArgumentException
         this(null)
     }
 }
-class MissingConfigParameterException(msg:String) extends InvalidCommandLineException
+class MissingRequiredConfigParameterException(msg:String) extends InvalidCommandLineException
 
 trait PropertiesOption extends Properties{
 
@@ -53,9 +54,18 @@ object Config {
         val os = System.getProperty("os.name").toLowerCase
         os.contains("nux") || os.contains("mac")
     }
+    def jarPath = {
+        val path = BackupRunner.getClass.getProtectionDomain.getCodeSource.getLocation.toURI.getPath
+        path match {
+            case x if x.endsWith(".jar") =>
+                //on Win resource path is returned as: /C:/... , need to remove leading slash
+                if (!isUnix && x.startsWith("/")) x.substring(1) else x
+            case _ => "backup-force.com-0.1.jar"
+        }
+    }
 
     type OptionMap = Map[String, String]
-    private val mainProps, credProps, lastQueryProps = new Properties() with PropertiesOption
+    private val mainProps, lastQueryProps = new Properties() with PropertiesOption
 
     private var options:OptionMap = Map()
     private var isValidCommandLine = false
@@ -67,13 +77,12 @@ object Config {
         }
 
         @tailrec
-        def nextOption(map: OptionMap, list: List[String]): OptionMap = {
+        def nextOption(configFilePaths: ListBuffer[String], map: OptionMap, list: List[String]): (List[String], OptionMap) = {
             list match {
-                case Nil => map
+                case Nil => (configFilePaths.toList, map)
                 case key :: value :: tail if key.startsWith("--") => key match {
-                        case "--config" => nextOption(map ++ Map("config" -> value), tail)
-                        case "--credentials" => nextOption(map ++ Map("credentials" -> value), tail)
-                        case _ => nextOption(map ++ Map(key.drop(2) -> value), tail)
+                        case "--config" => nextOption(configFilePaths += value, map, tail)
+                        case _ => nextOption(configFilePaths, map ++ Map(key.drop(2) -> value), tail)
                 }
                 case value :: Nil =>
                     throw new InvalidCommandLineException
@@ -83,16 +92,27 @@ object Config {
         }
 
         //args.foreach(arg => println(arg))
-        options = nextOption(Map(), arglist)
+        val (configFilePaths:List[String], opts) = nextOption(ListBuffer[String](), Map(), arglist)
+        options = opts
         isValidCommandLine = true
         println(options)
-        val mainConfigPath = options("config")
-        require(null != mainConfigPath, "missing --config parameter")
+        //merge config files
+        require(!configFilePaths.isEmpty, "missing --config parameter")
+        for (confPath <- configFilePaths) {
+            val conf = new Properties()
+            conf.load(scala.io.Source.fromFile(confPath.toString).bufferedReader())
 
-        mainProps.load(scala.io.Source.fromFile(mainConfigPath.toString).bufferedReader())
+            val keys = conf.keySet().iterator()
+            while (keys.hasNext) {
+                val key = keys.next.toString
+                val value = conf.getProperty(key, "")
+                if ("" != value) {
+                    //overwrite existing value
+                    mainProps.setProperty(key, value)
+                }
+            }
 
-        val credentialsConfigPath = if (options.contains("credentials")) options("credentials") else mainConfigPath
-        credProps.load(scala.io.Source.fromFile(credentialsConfigPath.toString).bufferedReader())
+        }
 
         //make sure output folder exists
         Config.mkdirs("")
@@ -113,30 +133,28 @@ object Config {
 
     def help() {
         println( """
-        Backup force.com utility.
-        https://github.com/neowit/backup-force.com
+Backup force.com utility.
+ https://github.com/neowit/backup-force.com
 
-        Command line parameters"
-        --help : show this text
-        --config : path to config.properties
-        --credentials : (optional)alternate config which contains login credentials
-        [--<any param from config file>]: (optional) all config parameters can be specified in both config file and command line.
-                        Command line parameters take precendence
+Command line parameters"
+ --help : show this text
+ --config : path to config.properties
+ [[--config : path to config.properties]: (optional) more than one "--config" is supported, non blank parameters of later --config take precendence
+ [--<any param from config file>]: (optional) all config parameters can be specified in both config file and command line.
+                 Command line parameters take precendence
 
-        Example:
-        java -jar backup-force.com-1.0-SNAPSHOT-jar-with-dependencies.jar --config ~/myconf.properties
+Example:
+ java -jar """ + jarPath + """ --config c:/myconf.properties
 
-        OR if sfdc login/pass are in a different file
-        java -jar backup-force.com-1.0-SNAPSHOT-jar-with-dependencies.jar --config ~/myconf.properties \
-            --credentials /Volumes/TRUECRYPT1/SForce.properties
+OR if sfdc login/pass are in a different file
+ java -jar """ + jarPath + """ --config c:/myconf.properties --config c:/credentials.properties
 
 
-        In the following example username user@domain.com specified in the command line will be used,
-        regardless of whether it is also specified in config file or not
-        java -jar backup-force.com-1.0-SNAPSHOT-jar-with-dependencies.jar --config ~/myconf.properties \
-            --sf.username user@domain.com
+In the following example username user@domain.com specified in the command line will be used,
+regardless of whether it is also specified in config file or not
+ java -jar """ + jarPath + """ --config c:/myconf.properties --sf.username user@domain.com
 
-                 """)
+          """)
     }
 
     def getProperty(key:String):Option[String] = getProperty(key, None)
@@ -154,31 +172,10 @@ object Config {
         evalShellCommands(res)
     }
 
-    def getProperty(key:String, alterConf:PropertiesOption):Option[String] = {
-        val cmdLineValue = options.get(key)
-        val alterConfValue = alterConf.getPropertyOption(key)
-        val mainConfValue = mainProps.getPropertyOption(key)
-
-        val res = cmdLineValue match {
-            case Some(cmdVal) => cmdLineValue
-            case None =>  alterConfValue match {
-                case Some(x) => alterConfValue
-                case None => mainConfValue
-            }
-        }
-
-        evalShellCommands(res)
-    }
-
-    /**
-     * all parameters with prefix sf. and http. can be sourced from both
-     * main config and credentials config
-     */
-    def getCredential(key: String): Option[String] = {
-        try {
-            getProperty(key, credProps)
-        } catch {
-            case ex: MissingConfigParameterException => None
+    def getRequiredProperty(key: String): Option[String] = {
+        getProperty(key) match {
+          case Some(s) if !s.isEmpty => Some(s)
+          case _ =>  throw new MissingRequiredConfigParameterException(key +" is required")
         }
     }
 
@@ -206,10 +203,10 @@ object Config {
             case Some(x) => Option(evalOne(x))
         }
     }
-    lazy val username = getProperty("sf.username", credProps).getOrElse("")
-    lazy val password = getProperty("sf.password", credProps).getOrElse("")
+    lazy val username = getRequiredProperty("sf.username").get
+    lazy val password = getRequiredProperty("sf.password").get
     lazy val endpoint = {
-        val serverUrl = getProperty("sf.serverurl", credProps)
+        val serverUrl = getRequiredProperty("sf.serverurl")
         serverUrl match {
             case Some(x) => x + "/services/Soap/u/28.0"
             case None => null
@@ -226,11 +223,6 @@ object Config {
     lazy val lastRunOutputFile = getProperty("lastRunOutputFile")
 
     lazy val globalWhere = getProperty("backup.global.where")
-
-    lazy val hookGlobalBefore = getProperty("hook.global.before")
-    lazy val hookGlobalAfter = getProperty("hook.global.after")
-    lazy val hookEachBefore = getProperty("hook.each.before")
-    lazy val hookEachAfter = getProperty("hook.each.after")
 
     def storeLastModifiedDate(objectApiName: String, formattedDateTime: String) {
 

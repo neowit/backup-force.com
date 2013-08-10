@@ -39,9 +39,9 @@ class ConfigGenerator {
             //save config
             if (!config.isEmpty) {
                 val writer = new FileWriter(configPath)
-                config.store(writer, " backup-force.com configuration file \n see example of all possible properties at: http://bit.ly/195WlEF")
+                config.store(writer, " backup-force.com configuration file \n see example of all possible properties at:\n https://github.com/neowit/backup-force.com/blob/master/config/sample-configuration.properties")
                 println("\nYou can now start the process using following command line: \n")
-                println("java -jar " + jarPath + " --config " + new File(configPath).getAbsolutePath + "\n")
+                println("java -jar " + Config.jarPath + " --config " + new File(configPath).getAbsolutePath + "\n")
             }
         case "2" => Config.help(); System.exit(0)
         case _ => System.exit(0)
@@ -152,11 +152,5 @@ class ConfigGenerator {
         }
         config
     }
-
-    def jarPath = {
-        val path = BackupRunner.getClass.getProtectionDomain.getCodeSource.getLocation.toURI.getPath
-        path
-    }
-
 }
 

@@ -1,0 +1,2 @@
+# make sure that sample config has windows friendly line endings
+sample-configuration.properties text eol=crlf

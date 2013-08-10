@@ -23,6 +23,7 @@ import org.scalatest.{FunSuite}
 import java.io.{File, FileWriter, FileNotFoundException}
 import scala.sys.process.Process
 import java.util.Properties
+import java.lang.IllegalArgumentException
 
 class ConfigTest extends FunSuite {
     val isUnix = Config.isUnix
@@ -58,11 +59,8 @@ class ConfigTest extends FunSuite {
         }
     }
     test("No --config Param") {
-        try {
+        intercept[IllegalArgumentException] {
             Config.load(List("--sf.username", "aaa@bb.cc"))
-        } catch {
-            case ex: NoSuchElementException => println("OK")
-            case ex: Throwable => assert(FAIL, "Expected NoSuchElementException for missing config parameter. " + ex)
         }
     }
     test("Missing ConfigFile") {
@@ -104,26 +102,30 @@ class ConfigTest extends FunSuite {
             expectResult(Option("val2")) { Config.getProperty("param1")  }
         }
     }
-    test("Parameter from --credentials take priority over config") {
-        //Config.load(List("--config", "/some/path"))
-        //Config.mainProps.setProperty("prop1", "value1")
+    test("Parameter from second --config takes priority over first --config") {
         withFile { (file, writer) =>
             val props = new java.util.Properties()
             props.setProperty("sf.username", "val1")
             props.store(writer, "")
+            withFile {(f2, w2) =>
+                val props2 = new Properties() with PropertiesOption
+                props2.setProperty("sf.serverurl", "val2")
+                props2.store(writer, "")
 
-            Config.load(List("--config", file.getAbsolutePath))
-            expectResult("val1") { Config.username }
+                Config.load(List("--config", file.getAbsolutePath, "--config", f2.getAbsolutePath))
+                expectResult(Some("val2")) { Config.getProperty("sf.serverurl") }
+            }
+
         }
     }
-    test("Parameter from command line take prioirty over --credentials and --config") {
+    test("Parameter from command line take priority over --config") {
         withFile { (file, writer) =>
             val props = new Properties() with PropertiesOption
             props.setProperty("sf.serverurl", "val1")
             props.store(writer, "")
 
-            Config.load(List("--config", file.getAbsolutePath, "--credentials", file.getAbsolutePath, "--sf.serverurl", "val2"))
-            expectResult(Some("val2")) { Config.getProperty("sf.serverurl", props) }
+            Config.load(List("--config", file.getAbsolutePath, "--config", file.getAbsolutePath, "--sf.serverurl", "val2"))
+            expectResult(Some("val2")) { Config.getProperty("sf.serverurl") }
         }
     }
     test("ShellEvaluation") {

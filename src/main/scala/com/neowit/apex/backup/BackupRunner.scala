@@ -41,6 +41,7 @@ object BackupRunner {
                 run()
             } catch {
                 case ex: InvalidCommandLineException => Config.help()
+                case ex: MissingRequiredConfigParameterException => Config.help()
             }
         }
     }
@@ -58,28 +59,28 @@ object BackupRunner {
 
         config.setCompression(true)
 
-        val proxyHost = Config.getCredential("http.proxyHost")
-        val proxyPort = Config.getCredential("http.proxyPort")
+        val proxyHost = Config.getProperty("http.proxyHost")
+        val proxyPort = Config.getProperty("http.proxyPort")
         if (None != proxyHost && None != proxyPort)
             config.setProxy(proxyHost.get, proxyPort.get.toInt)
 
-        val proxyUsername = Config.getCredential("http.proxyUsername")
+        val proxyUsername = Config.getProperty("http.proxyUsername")
         if (None != proxyUsername )
             config.setProxyUsername(proxyUsername.get)
 
-        val proxyPassword = Config.getCredential("http.proxyPassword")
+        val proxyPassword = Config.getProperty("http.proxyPassword")
         if (None != proxyPassword )
             config.setProxyPassword(proxyPassword.get)
 
-        val ntlmDomain = Config.getCredential("http.ntlmDomain")
+        val ntlmDomain = Config.getProperty("http.ntlmDomain")
         if (None != ntlmDomain )
             config.setNtlmDomain(ntlmDomain.get)
 
-        val connectionTimeoutSecs = Config.getCredential("http.connectionTimeoutSecs")
+        val connectionTimeoutSecs = Config.getProperty("http.connectionTimeoutSecs")
         if (None != connectionTimeoutSecs )
             config.setConnectionTimeout(connectionTimeoutSecs.get.toInt * 1000)
 
-        val readTimeoutSecs = Config.getCredential("http.readTimeoutSecs")
+        val readTimeoutSecs = Config.getProperty("http.readTimeoutSecs")
         if (None != readTimeoutSecs )
             config.setReadTimeout(readTimeoutSecs.get.toInt * 1000)
 

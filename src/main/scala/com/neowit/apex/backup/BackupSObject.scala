@@ -49,7 +49,7 @@ class BackupSObject(connection:PartnerConnection, objectApiName:String ) {
                 configSoql.get
             else
                 "select * from " + objectApiName +
-                    {if (allowGlobalWhere && null != Config.globalWhere) " where " + Config.globalWhere
+                    {if (allowGlobalWhere && None != Config.globalWhere) " where " + Config.globalWhere
                     else ""}
 
 
