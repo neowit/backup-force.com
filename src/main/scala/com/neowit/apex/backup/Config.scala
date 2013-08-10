@@ -95,7 +95,7 @@ object Config {
         val (configFilePaths:List[String], opts) = nextOption(ListBuffer[String](), Map(), arglist)
         options = opts
         isValidCommandLine = true
-        println(options)
+        //println(options)
         //merge config files
         require(!configFilePaths.isEmpty, "missing --config parameter")
         for (confPath <- configFilePaths) {
@@ -114,13 +114,16 @@ object Config {
 
         }
 
-        //make sure output folder exists
-        Config.mkdirs("")
-
         lastRunOutputFile match {
             case None => Unit
             case Some(fName) =>
                 lastQueryPropsFile = new File(fName)
+                //make sure folder exists
+                val dir = lastQueryPropsFile.getParentFile
+                if (!dir.exists()) {
+                    if (!dir.mkdirs())
+                        throw new RuntimeException("Failed to create folder: " + dir.getAbsolutePath + " for lastRunOutputFile " + fName)
+                }
                 if (!lastQueryPropsFile.exists) {
                     lastQueryPropsFile.createNewFile()
                 }
@@ -140,8 +143,7 @@ Command line parameters"
  --help : show this text
  --config : path to config.properties
  [[--config : path to config.properties]: (optional) more than one "--config" is supported, non blank parameters of later --config take precendence
- [--<any param from config file>]: (optional) all config parameters can be specified in both config file and command line.
-                 Command line parameters take precendence
+ [--<any param from config file>]: (optional) all config parameters can be specified in both config file and command line. Command line parameters take precendence
 
 Example:
  java -jar """ + jarPath + """ --config c:/myconf.properties
@@ -219,7 +221,17 @@ regardless of whether it is also specified in config file or not
 
 
     //outputFolder value should be evaluated only once, otherwise different objects may end up in different folders
-    lazy val outputFolder = getProperty("outputFolder").getOrElse(null)
+    lazy val outputFolder: String = getProperty("outputFolder") match {
+      case Some(path) if !path.isEmpty =>
+          //make sure output folder exists
+          val f = new File(path)
+          if (!f.isDirectory) {
+              if (!f.mkdirs())
+                  throw new InvalidCommandLineException("Failed to create outputFolder: " + path)
+          }
+          path
+      case _ => null
+    }
     lazy val lastRunOutputFile = getProperty("lastRunOutputFile")
 
     lazy val globalWhere = getProperty("backup.global.where")
