@@ -69,7 +69,7 @@ class ConfigGenerator {
                 }
 
                 println("It appears file " + configPath + " already exists.")
-                if ("a" == readLine("Enter 'a' to abort the process, any other key - continue: ")) {
+                if ("a" == readLine("Enter 'a' to abort the process, any other key - continue updating existing config: ")) {
                     System.exit(0)
                 }
                 config.load(scala.io.Source.fromFile(configPath).bufferedReader())
@@ -91,7 +91,7 @@ class ConfigGenerator {
         def displaySectionHeader(sectionKey: String) = {
             template.getPropertyOption(sectionKey + ".header") match {
                 case Some(x) =>
-                    println("========================================================")
+                    println("\n========================================================")
                     println("# " + x)
                 case None =>
             }
@@ -105,7 +105,10 @@ class ConfigGenerator {
             }
         }
         def enterKeyValues(sectionKey: String) = {
-            val keys = template.getPropertyOption(sectionKey + ".list").get.split(",")
+            val keys = template.getPropertyOption(sectionKey + ".list")  match {
+              case Some(x) if !x.isEmpty=> x.split(",")
+              case _ => Array[String]()
+            }
             for (k <- keys; key = k.trim) {
                 template.getPropertyOption(sectionKey + "." + key + ".header")  match {
                     case Some(x) =>
@@ -120,7 +123,7 @@ class ConfigGenerator {
                     case None =>
                 }
                 template.getPropertyOption(sectionKey + "." + key)  match {
-                    case Some(x) if !x.isEmpty => println(" Example value: " + x)
+                    case Some(x) if !x.isEmpty => println(key + " - Example value: " + x)
                     case None => ""
                     case _ => ""
                 }
