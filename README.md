@@ -43,12 +43,14 @@ Java JDK/JRE, Version 6.1 or greater
 * Incremental data retrieval for Objects that support LastModifiedDate field
     See `$Object.LastModifiedDate` in ./config/sample-configuration.properties
 * Multiple config files  
-  In some cases you may want to resuse same connection details with multiple extract/backup configurations. For such cases you can specify more than one --config parameters on the command line. Values from all specified config files will be merged (if there are conflicts then last config wins). For example    
+  In some cases you may want to re-use same connection details with multiple extract/backup configurations. For such cases you can specify more than one --config parameters on the command line. Values from all specified config files will be merged (if there are conflicts then last config wins). For example    
    `… --config ./extract.properties --config ./connection.properties`
 * Shell Expressions evaluation - shell commands can be embedded in all config values in order to make configuration more dynamic, for example, here is how you could define dynamically created output folder for daily incremental extract/backup:
 <pre>
     outputFolder=/home/user/extract/\`date +%Y%m%d-%H%M\`
 </pre>
+Note: on systems (e.g. MS Windows) that do not have Unix [date](http://en.wikipedia.org/wiki/Date_(Unix) utility you may need to use an alternative, e.g. date.exe from UnixUtils)
+    
 * Hooks - execute user defined scripts  
 	- before/after main process start
 	- before/after each object type  
