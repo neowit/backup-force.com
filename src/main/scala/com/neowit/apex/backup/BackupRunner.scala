@@ -41,7 +41,7 @@ object BackupRunner {
                 run()
             } catch {
                 case ex: InvalidCommandLineException => Config.help()
-                case ex: MissingRequiredConfigParameterException => Config.help()
+                case ex: MissingRequiredConfigParameterException => println(ex.getMessage)
             }
         }
     }

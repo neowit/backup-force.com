@@ -26,12 +26,12 @@ import scala.sys.process._
 import scala.collection.mutable.ListBuffer
 
 
-class InvalidCommandLineException(msg: String)  extends IllegalArgumentException {
+class InvalidCommandLineException(msg: String)  extends IllegalArgumentException(msg: String) {
     def this() {
         this(null)
     }
 }
-class MissingRequiredConfigParameterException(msg:String) extends InvalidCommandLineException
+class MissingRequiredConfigParameterException(msg:String) extends IllegalArgumentException(msg: String)
 
 trait PropertiesOption extends Properties{
 
