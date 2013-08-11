@@ -14,7 +14,7 @@ See ./config/sample-configuration.properties file for further inspiration
 
 ## System requirements
 
-Java JDK/JRE, Version 6.1 or greater
+[Java](http://java.com/download) JDK/JRE, Version 6.1 or greater
 
 ## Running
 
@@ -24,6 +24,9 @@ Java JDK/JRE, Version 6.1 or greater
   `java -jar backup-force.com-0.1.jar --config /full/path/to/myconf.properties`  
   or if you want to direct output to a file instead of console:  
   `java -jar backup-force.com-0.1.jar --config /full/path/to/myconf.properties > log.txt`  
+
+## Video instructions   
+* [Installation](http://youtu.be/eyIkdsSBpLY) - describes initial installation and first launch
 
 
 ## Features
