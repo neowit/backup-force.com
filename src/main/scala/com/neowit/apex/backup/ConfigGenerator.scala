@@ -110,32 +110,35 @@ class ConfigGenerator {
               case _ => Array[String]()
             }
             for (k <- keys; key = k.trim) {
+                println()
                 template.getPropertyOption(sectionKey + "." + key + ".header")  match {
                     case Some(x) =>
-                        println()
                         println(x)
-                    case None =>
+                    case None => println("Key: " + key)
                 }
                 template.getPropertyOption(sectionKey + "." + key + ".description")  match {
                     case Some(x) =>
-                        println()
-                        println(x)
+                        println(" " + x)
                     case None =>
                 }
                 template.getPropertyOption(sectionKey + "." + key)  match {
-                    case Some(x) if !x.isEmpty => println(key + " - Example value: " + x)
+                    case Some(x) if !x.isEmpty => println(" Example value: " + x)
                     case None => ""
                     case _ => ""
                 }
                 //println()
                 val currentValue = config.getPropertyOption(key) match {
-                  case Some(x) if !x.isEmpty => " [Current value: " + x + "]"
+                  case Some(x) if !x.isEmpty => x
                   case None => ""
                   case _ => ""
                 }
+                if (!currentValue.isEmpty) {
+                    println(" Current value: " + currentValue)
+                }
                 var noExit = true
+                val keepValuePrompt = if (!currentValue.isEmpty) " [press Enter to keep current value]" else ""
                 while (noExit) {
-                    val res = readLine(key + currentValue + "=")
+                    val res = readLine(" New value" + keepValuePrompt + ": ")
                     if (null != res && !res.isEmpty) {
                         config.setProperty(key, res)
                         noExit = false

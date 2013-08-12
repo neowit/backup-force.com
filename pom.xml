@@ -3,7 +3,7 @@
     <modelVersion>4.0.0</modelVersion>
     <groupId>com.neowit.apex.backup</groupId>
     <artifactId>backup-force.com</artifactId>
-    <version>0.3.2-SNAPSHOT</version>
+    <version>0.3.3-SNAPSHOT</version>
     <inceptionYear>2013</inceptionYear>
     <properties>
         <scala.version>2.10.2</scala.version>
