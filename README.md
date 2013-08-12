@@ -27,6 +27,7 @@ See ./config/sample-configuration.properties file for further inspiration
 
 ## Video instructions   
 * [Installation](http://youtu.be/eyIkdsSBpLY) - describes initial installation and first launch
+* [Basic config example](http://youtu.be/ptMc-7hp5qA) - an example of backup-force.com configuration to extract/backup data from 2 selected Salesforce.com objects
 
 
 ## Features
