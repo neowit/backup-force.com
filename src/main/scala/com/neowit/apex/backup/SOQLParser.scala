@@ -22,25 +22,26 @@ package com.neowit.apex.backup
 
 class SOQLParser(soqlStr:String) {
 
-    val twoParts = """select (.*) from (\w*)""".r
-    val threeParts = """select (.*) from (\w*)(.*)""".r
+    private val twoParts = """select (.*) from (\w*)""".r
+    private val threeParts = """select (.*) from (\w*)(.*)""".r
 
     private val (selectVal, fromVal, tailVal) = soqlStr match {
         case twoParts(sel, frm) => (sel, frm, None)
         case threeParts(sel, frm, rest) => (sel, frm, rest)
         case _ => (None, None, None)
     }
-    def select = getAsString(selectVal)
-    def from = getAsString(fromVal)
-    def tail = {
+    lazy val select = getAsString(selectVal)
+    lazy val from = getAsString(fromVal)
+    lazy val tail = {
         var tailStr = getAsString(tailVal)
         //val token = "$object.lastmodifieddate"
         val p = "(?i)\\$object\\.lastmodifieddate".r
         p.replaceAllIn(tailStr, Config.getStoredLastModifiedDate(from))
     }
-    def fields:List[String] = if ("*" == select) List("*") else select.split(",").map(fName => fName.trim).toList
-    def hasTail = tail.length > 0
-    def isAllFields = fields == List("*")
+    lazy val fields:List[String] = if ("*" == select) List("*") else select.split(",").map(fName => fName.trim).toList
+    lazy val hasTail = tail.length > 0
+    lazy val isAllFields = fields == List("*")
+    //lazy val hasRelationshipFields = select.indexOf(".") >= 0
 
     private def getAsString(strVal:Any) = strVal match {
         case None => ""
