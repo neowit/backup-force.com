@@ -26,6 +26,7 @@ import com.sforce.soap.partner.sobject.SObject
 import com.sforce.ws.util.Base64
 import com.sforce.ws.bind.XmlObject
 import scala.collection.JavaConversions._
+import scala.annotation.tailrec
 
 object ZuluTime {
     val zulu = new java.text.SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'")
@@ -40,61 +41,9 @@ object ZuluTime {
  *      which XmlObject.getField() method expects, e.g. agents_name__c -> Agents_Name__c
  * 2 - resolves relationships, e.g. Owner.Name
  */
-private class FieldResolver {
-
-    val fieldNameByLowerCaseName = collection.mutable.Map[String, String] ()// ++ describeResult.getFields.map(f => (describeResult.getName + "#" + f.getName.toLowerCase, f.getName)).toMap
-
-    def getField(record: XmlObject, fName: String): Object = {
-
-        if (fName.indexOf(".") < 1) {
-            //normal field
-            val realName = getNormalisedName(fName, record)
-            record.getField(realName)
-        } else {
-            //relationship field
-            //Account.Agents_Name__r.Name
-            val head = fName.takeWhile(_ != '.') //Account
-            val properName = getNormalisedName(head, record)
-            val tail = fName.substring(properName.length + 1) //Agents_Name__r.Name
-            getField(record.getChild(properName), tail)
-        }
-    }
-
-    private def getNormalisedName(fName: String, record: XmlObject): String = {
-        val objType = normaliseFieldName("type", record)
-        if (null != objType) {
-            val key = objType + "#" + fName.toLowerCase
-            val realName = fieldNameByLowerCaseName.get(key) match {
-                case Some(x) => x
-                case None => //could not find this field on current object, chances that it is part of the relationship
-                    val properName = normaliseFieldName(fName, record)
-                    fieldNameByLowerCaseName += (key -> properName)
-                    properName
-            }
-            realName
-        } else {
-            fName
-        }
-
-    }
-
-    /**
-     * using the name of current field find child of XmlObject that has the same name, ignore case
-     */
-    private def normaliseFieldName(fName: String, record: XmlObject): String = {
-        val children = record.getChildren
-        var resultName = fName
-        var stop = false
-        while (children.hasNext && !stop) {
-            val childName = children.next().getName.getLocalPart
-            if (childName.equalsIgnoreCase(fName)) {
-                resultName = childName
-                stop = true
-            }
-        }
-        resultName
-    }
+class FieldResolver (rec: SObject) {
     private def findChild(localName: String, record: XmlObject): Option[XmlObject] = {
+        @tailrec
         def findFirst(it: Iterator[XmlObject]): Option[XmlObject] = {
             if (it.hasNext) {
                 val child = it.next()
@@ -108,11 +57,17 @@ private class FieldResolver {
         }
         findFirst(record.getChildren())
     }
-    def getField(name: String, record: XmlObject): Object = {
-        findChild(name, record)  match {
+
+    def getFieldIgnoreCase(name: String): Object = {
+        getField(name, rec)
+    }
+    @tailrec
+    private def getField(name: String, record: XmlObject): Object = {
+        val fName = name.takeWhile(_ != '.')
+        findChild(fName, record)  match {
           case Some(item) =>
               if (item.hasChildren) {
-                  item
+                  getField(name.substring(fName.length+1), item)
               } else {
                   item.getValue()
               }
@@ -121,7 +76,11 @@ private class FieldResolver {
     }
 }
 
+
 class BackupSObject(connection:PartnerConnection, objectApiName:String ) {
+    //provide conversion of SObject to FieldResolver
+    implicit def toFieldResolver(record: SObject) = new FieldResolver(record)
+
     val ALLOW_GLOBAL_WHERE = true
     val DISABLE_GLOBAL_WHERE = !ALLOW_GLOBAL_WHERE
 
@@ -183,13 +142,11 @@ class BackupSObject(connection:PartnerConnection, objectApiName:String ) {
             var queryResults = connection.query(queryString)
             val size = queryResults.getSize
             if (size > 0) {
-                val resolver = new FieldResolver()
                 var doExit = false
                 do {
                     for (record <- queryResults.getRecords) {
                         //println("Id: " + record.getId + "; Name=" + record.getField("Name"))
-                        val values = fieldList.map(fName => (resolver.getField(record, fName) match {
-                        //val values = fieldList.map(fName => (resolver.getField(fName, record) match {
+                        val values = fieldList.map(fName => (record.getFieldIgnoreCase(fName) match {
                             case null => ""
                             case x => x
                         }).toString).toArray
