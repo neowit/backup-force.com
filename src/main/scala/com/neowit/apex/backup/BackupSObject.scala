@@ -44,42 +44,40 @@ class FieldResolver (describeResult: DescribeSObjectResult) {
     val fieldNameByLowerCaseName = describeResult.getFields.map(f => (f.getName.toLowerCase, f.getName)).toMap
 
     def getField(record: XmlObject, fName: String): Object = {
-        val childByLowerCaseKey = getFieldMapFromChildrenNames(Map[String, String](), record.getChildren)
 
         if (fName.indexOf(".") < 1) {
             //normal field
             val realName = fieldNameByLowerCaseName.get(fName.toLowerCase) match {
                 case Some(x) => x
                 case None => //could not find this field on current object, chances that it is part of the relationship
-
-                    childByLowerCaseKey.get(fName.toLowerCase) match {
-                        case Some(x) => x
-                        case None => fName //fall back to the original name
-                    }
+                    normaliseFieldName(fName, record)
             }
             record.getField(realName)
         } else {
             //relationship field
             //Account.Agents_Name__r.Name
             val head = fName.takeWhile(_ != '.') //Account
-            val properName = childByLowerCaseKey.get(head.toLowerCase) match {
-                case Some(x) => x
-                case None => head //fall back to the original name
-            }
+            val properName = normaliseFieldName(head, record)
             val tail = fName.substring(properName.length + 1) //Agents_Name__r.Name
             getField(record.getChild(properName), tail)
         }
     }
 
     /**
-     * iterate through all children and map lower case names to real field names
+     * using the name of current field find child of XmlObject that has the same name, ignore case
      */
-    def getFieldMapFromChildrenNames(fMap: Map[String, String], children: java.util.Iterator[XmlObject]): Map[String, String] = {
-        if (children.hasNext) {
-            val child = children.next()
-            val fName = child.getName.getLocalPart
-            getFieldMapFromChildrenNames(fMap ++ Map(fName.toLowerCase -> fName), children )
-        } else fMap
+    def normaliseFieldName(fName: String, record: XmlObject): String = {
+        val children = record.getChildren
+        var resultName = fName
+        var stop = false
+        while (children.hasNext && !stop) {
+            val childName = children.next().getName.getLocalPart
+            if (childName.equalsIgnoreCase(fName)) {
+                resultName = childName
+                stop = true
+            }
+        }
+        resultName
     }
 }
 
