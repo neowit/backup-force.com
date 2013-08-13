@@ -48,7 +48,6 @@ object BackupRunner {
 
     def run() {
 
-
         val config = new com.sforce.ws.ConnectorConfig()
         config.setUsername(Config.username)
         config.setPassword(Config.password)
