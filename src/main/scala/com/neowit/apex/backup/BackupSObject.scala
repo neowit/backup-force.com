@@ -19,12 +19,13 @@
 
 package com.neowit.apex.backup
 
-import com.sforce.soap.partner.{DescribeSObjectResult, PartnerConnection}
+import com.sforce.soap.partner.PartnerConnection
 import java.io.{FileOutputStream, File, FileWriter}
 import com.sforce.soap.partner.fault.{ApiQueryFault, InvalidFieldFault}
 import com.sforce.soap.partner.sobject.SObject
 import com.sforce.ws.util.Base64
 import com.sforce.ws.bind.XmlObject
+import scala.collection.JavaConversions._
 
 object ZuluTime {
     val zulu = new java.text.SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'")
@@ -39,34 +40,48 @@ object ZuluTime {
  *      which XmlObject.getField() method expects, e.g. agents_name__c -> Agents_Name__c
  * 2 - resolves relationships, e.g. Owner.Name
  */
-class FieldResolver (describeResult: DescribeSObjectResult) {
+private class FieldResolver {
 
-    val fieldNameByLowerCaseName = describeResult.getFields.map(f => (f.getName.toLowerCase, f.getName)).toMap
+    val fieldNameByLowerCaseName = collection.mutable.Map[String, String] ()// ++ describeResult.getFields.map(f => (describeResult.getName + "#" + f.getName.toLowerCase, f.getName)).toMap
 
     def getField(record: XmlObject, fName: String): Object = {
 
         if (fName.indexOf(".") < 1) {
             //normal field
-            val realName = fieldNameByLowerCaseName.get(fName.toLowerCase) match {
-                case Some(x) => x
-                case None => //could not find this field on current object, chances that it is part of the relationship
-                    normaliseFieldName(fName, record)
-            }
+            val realName = getNormalisedName(fName, record)
             record.getField(realName)
         } else {
             //relationship field
             //Account.Agents_Name__r.Name
             val head = fName.takeWhile(_ != '.') //Account
-            val properName = normaliseFieldName(head, record)
+            val properName = getNormalisedName(head, record)
             val tail = fName.substring(properName.length + 1) //Agents_Name__r.Name
             getField(record.getChild(properName), tail)
         }
     }
 
+    private def getNormalisedName(fName: String, record: XmlObject): String = {
+        val objType = normaliseFieldName("type", record)
+        if (null != objType) {
+            val key = objType + "#" + fName.toLowerCase
+            val realName = fieldNameByLowerCaseName.get(key) match {
+                case Some(x) => x
+                case None => //could not find this field on current object, chances that it is part of the relationship
+                    val properName = normaliseFieldName(fName, record)
+                    fieldNameByLowerCaseName += (key -> properName)
+                    properName
+            }
+            realName
+        } else {
+            fName
+        }
+
+    }
+
     /**
      * using the name of current field find child of XmlObject that has the same name, ignore case
      */
-    def normaliseFieldName(fName: String, record: XmlObject): String = {
+    private def normaliseFieldName(fName: String, record: XmlObject): String = {
         val children = record.getChildren
         var resultName = fName
         var stop = false
@@ -78,6 +93,31 @@ class FieldResolver (describeResult: DescribeSObjectResult) {
             }
         }
         resultName
+    }
+    private def findChild(localName: String, record: XmlObject): Option[XmlObject] = {
+        def findFirst(it: Iterator[XmlObject]): Option[XmlObject] = {
+            if (it.hasNext) {
+                val child = it.next()
+                if (localName.equalsIgnoreCase(child.getName.getLocalPart)) {
+                    Option(child)
+                } else {
+                    findFirst(it)
+                }
+            } else
+                None
+        }
+        findFirst(record.getChildren())
+    }
+    def getField(name: String, record: XmlObject): Object = {
+        findChild(name, record)  match {
+          case Some(item) =>
+              if (item.hasChildren) {
+                  item
+              } else {
+                  item.getValue()
+              }
+          case None => null
+        }
     }
 }
 
@@ -143,12 +183,13 @@ class BackupSObject(connection:PartnerConnection, objectApiName:String ) {
             var queryResults = connection.query(queryString)
             val size = queryResults.getSize
             if (size > 0) {
-                val resolver = new FieldResolver(describeRes)
+                val resolver = new FieldResolver()
                 var doExit = false
                 do {
                     for (record <- queryResults.getRecords) {
                         //println("Id: " + record.getId + "; Name=" + record.getField("Name"))
                         val values = fieldList.map(fName => (resolver.getField(record, fName) match {
+                        //val values = fieldList.map(fName => (resolver.getField(fName, record) match {
                             case null => ""
                             case x => x
                         }).toString).toArray
