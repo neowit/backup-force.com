@@ -34,7 +34,7 @@ See ./config/sample-configuration.properties file for further inspiration
 
 * Extract full content of selected or All objects
 * Specify global or per object-type WHERE clause
-* Wildcard '*' support for easy field list definition, e.g. `select * from Account`, as well as to include all objects without listing them, e.g. `backup.objects=*`
+* Wildcard `*` support for easy field list definition, e.g. `select * from Account`, as well as to include all objects without listing them, e.g. `backup.objects=*`
   - field wildcard is particularly useful because it makes your config resistant to Org config changes (e.g. field removed/added)
 * Config file is order of magnitude smaller and simpler than process-conf.xml used by Apex DataLoader.  
 	Here is an example of full config (excluding login credentials) which allows to extract 3 fields from Accounts, all fields from Opportunities with Amount > 100 and all fields from all Contacts into 3 separate .csv files:
