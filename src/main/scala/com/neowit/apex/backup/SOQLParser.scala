@@ -41,6 +41,8 @@ class SOQLParser(soqlStr:String) {
     lazy val fields:List[String] = if ("*" == select) List("*") else select.split(",").map(fName => fName.trim).toList
     lazy val hasTail = tail.length > 0
     lazy val isAllFields = fields == List("*")
+    //if query contains IsDeleted then this is a hint that user wants ALL Rows (i.e. queryAll)
+    lazy val isAllRows = tail.toLowerCase.contains(" isdeleted=") || tail.toLowerCase.contains(" isdeleted ")
     //lazy val hasRelationshipFields = select.indexOf(".") >= 0
 
     private def getAsString(strVal:Any) = strVal match {

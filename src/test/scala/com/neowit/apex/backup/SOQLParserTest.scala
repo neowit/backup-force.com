@@ -41,5 +41,18 @@ class SOQLParserTest extends FunSuite with PrivateMethodTester {
 
     }
 
+    test("Query & QueryAll") {
+        val p1 = new SOQLParser("select Id, Name from Account limit 100")
+        assert(!p1.isAllRows)
+
+        val p2 = new SOQLParser("select Id, Name from Account where Id > '' limit 100")
+        assert(!p2.isAllRows)
+
+        val p3 = new SOQLParser("select Id, Name from Account where Id > '' and IsDeleted=true limit 100")
+        assert(p3.isAllRows)
+
+        val p4 = new SOQLParser("select Id, Name from Account where Id > '' and IsDeleted  = true limit 100")
+        assert(p4.isAllRows)
+    }
 
 }

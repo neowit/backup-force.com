@@ -139,7 +139,10 @@ class BackupSObject(connection:PartnerConnection, objectApiName:String ) {
         val timeStampCal = connection.getServerTimestamp.getTimestamp
 
         try {
-            var queryResults = connection.query(queryString)
+            var queryResults = if (soqlParser.isAllRows)
+                                   connection.queryAll(queryString)
+                               else
+                                   connection.query(queryString)
             val size = queryResults.getSize
             if (size > 0) {
                 var doExit = false
