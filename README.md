@@ -44,7 +44,7 @@ See ./config/sample-configuration.properties file for further inspiration
     backup.soql.Account=select Id, Name, Description from Account
     backup.soql.Opportunity=select * from Opportunity where Amount > 100
 </pre>
-* Incremental data retrieval for Objects that support LastModifiedDate field
+* Incremental data retrieval for Objects that support LastModifiedDate field    
     See `$Object.LastModifiedDate` in ./config/sample-configuration.properties
 * Multiple config files  
   In some cases you may want to re-use same connection details with multiple extract/backup configurations. For such cases you can specify more than one --config parameters on the command line. Values from all specified config files will be merged (if there are conflicts then last config wins). For example    
@@ -53,7 +53,7 @@ See ./config/sample-configuration.properties file for further inspiration
 <pre>
     outputFolder=/home/user/extract/\`date +%Y%m%d-%H%M\`
 </pre>
-Note: on systems (e.g. MS Windows) that do not have Unix [date](http://en.wikipedia.org/wiki/Date_(Unix) utility you may need to use an alternative, e.g. date.exe from UnixUtils)
+Note: on systems that do not have Unix [date](http://en.wikipedia.org/wiki/Date_(Unix) utility (e.g. MS Windows) you may need to use an alternative, e.g. date.exe from UnixUtils).
     
 * Hooks - execute user defined scripts  
 	- before/after main process start
@@ -63,8 +63,8 @@ Using hooks you can specify custom scripts to archive retrieved .csv files, writ
 
 ## Limitations
 
-Current version will report `java.lang.OutOfMemoryError` (same as Apex DataLoader) on large files. In some cases this can be mitigated by increasing java heap size, e.g. to make it 1024MB use `java -Xmx1024m -jar …` but may still fail on retrieval of Chatter/Content/Files (ContentVersion object) when they are tens of megabytes in size.  
-Present worcaround (if your Org has very large files 20MB+ and the above trick with `-Xmx` parameter does not work) is to limit the the file size in a config query, e.g.  
+Current version will report `java.lang.OutOfMemoryError` (same as Apex DataLoader) on large files. In some cases this can be mitigated by increasing java heap size, e.g. to make it 1024MB use `java -Xmx1024m -jar …`. However it may still fail on retrieval of Chatter/Content/Files (ContentVersion object) when they are tens of megabytes in size.  
+Present workaround (if your Org has very large files 20MB+ and the above trick with `-Xmx` parameter does not work) is to limit the the file size in a config query, e.g.  
 `backup.soql.ContentVersion=select * from ContentVersion where ContentSize < 20000000`  
 
  
