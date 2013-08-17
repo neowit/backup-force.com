@@ -205,7 +205,7 @@ class BackupSObject(connection:PartnerConnection, objectApiName:String ) {
                     val extIndex = if (extIndex1 >= 0) extIndex1 else fileName.length
                     val name = fileName.substring(0, extIndex)
                     val ext = if (extIndex < fileName.length) fileName.substring(extIndex+1) else ""
-                    str.replaceAll("""$name""", name).replaceAll("""$id""", record.getId).replaceAll("""$ext""", ext)
+                    str.replaceAll("\\$name", name).replaceAll("\\$id", record.getId).replaceAll("\\$ext", ext)
                 case _ => null
             }
 
