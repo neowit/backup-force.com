@@ -33,7 +33,7 @@ class ConfigTest extends FunSuite {
         val file = File.createTempFile("test", ".properties") // create the fixture
         val writer = new FileWriter(file)
         try {
-            writer.write("ScalaTest is ") // set up the fixture
+            //writer.write("ScalaTest is ") // set up the fixture
             testCode(file, writer) // "loan" the fixture to the test
         } finally {
             // clean up the fixture

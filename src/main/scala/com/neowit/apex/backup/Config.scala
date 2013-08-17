@@ -207,10 +207,11 @@ regardless of whether it is also specified in config file or not
     }
     lazy val username = getRequiredProperty("sf.username").get
     lazy val password = getRequiredProperty("sf.password").get
-    lazy val endpoint = {
+    val apiVersion = "28.0"
+    lazy val soapEndpoint = {
         val serverUrl = getRequiredProperty("sf.serverurl")
         serverUrl match {
-            case Some(x) => x + "/services/Soap/u/28.0"
+            case Some(x) => x + "/services/Soap/u/" + apiVersion
             case None => null
         }
     }
@@ -235,6 +236,8 @@ regardless of whether it is also specified in config file or not
     lazy val lastRunOutputFile = getProperty("lastRunOutputFile")
 
     lazy val globalWhere = getProperty("backup.global.where")
+
+    lazy val useBulkApi = getProperty("sf.useBulkApi")
 
     def storeLastModifiedDate(objectApiName: String, formattedDateTime: String) {
 
@@ -323,7 +326,7 @@ regardless of whether it is also specified in config file or not
      */
     object HookEachAfter extends Hook {
         lazy val scriptPath = getProperty("hook.each.after")
-        def execute(objectApiName: String, outputCsvPath: String, numOfRecords: Int):Int = {
+        def execute(objectApiName: String, outputCsvPath: String, numOfRecords: Long):Int = {
             execute(Seq(objectApiName, outputCsvPath, numOfRecords.toString))
         }
     }

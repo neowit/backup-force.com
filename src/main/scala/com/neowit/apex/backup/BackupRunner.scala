@@ -52,7 +52,7 @@ object BackupRunner {
         config.setUsername(Config.username)
         config.setPassword(Config.password)
 
-        val endpoint = Config.endpoint
+        val endpoint = Config.soapEndpoint
         if (null != endpoint)
             config.setAuthEndpoint(endpoint)
 
