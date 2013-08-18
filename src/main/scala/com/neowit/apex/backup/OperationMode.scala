@@ -153,6 +153,7 @@ class AsyncMode extends OperationMode {
                 case BatchStateEnum.Failed =>
                     keepWaiting = false
                     println(info.getStateMessage)
+                    closeJob(bulkConnection, info.getJobId)
                     throw new BatchProcessingException(info.getStateMessage)
                 case _ => //in progress
             }
