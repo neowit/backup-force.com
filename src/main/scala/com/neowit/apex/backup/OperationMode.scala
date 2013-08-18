@@ -173,20 +173,23 @@ class AsyncMode extends OperationMode {
                 }
                 //check if file is empty
                 val emptyMsg = "Records not found for this query"
-                val emptySize = emptyMsg.toCharArray.length
+                val emptySize = emptyMsg.getBytes.length
                 val startBytes = new Array[Byte](emptySize)
                 val readBytesSize = input.read(startBytes)
-                if (readBytesSize > emptySize || startBytes.toString.indexOf(emptyMsg) < 0) {
+                if (readBytesSize > emptySize || new String(startBytes).indexOf(emptyMsg.substring(0, readBytesSize)) < 0) {
                     //file is not empty
                     output.write(startBytes,0,readBytesSize)
+                    size += readBytesSize
                     //read the rest of the file
                     val bytes = new Array[Byte](1024) //1024 bytes - Buffer size
                     Iterator
                         .continually (input.read(bytes))
                         .takeWhile (-1 !=)
                         .foreach (read=>{output.write(bytes,0,read); size += read})
-                    if (writerNeedsClosing)
+
+                    if (writerNeedsClosing) {
                         output.close()
+                    }
 
                 }
             }
