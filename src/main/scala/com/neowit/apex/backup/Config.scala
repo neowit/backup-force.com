@@ -237,7 +237,10 @@ regardless of whether it is also specified in config file or not
 
     lazy val globalWhere = getProperty("backup.global.where")
 
-    lazy val useBulkApi = getProperty("sf.useBulkApi")
+    lazy val useBulkApi = getProperty("sf.useBulkApi") match {
+      case Some("true") => true
+      case _ => false
+    }
 
     private lazy val attachmentNameTemplate = getProperty("backup.extract.file")
     lazy val hasAttachmentNameTemplate = attachmentNameTemplate match {
