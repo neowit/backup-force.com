@@ -29,7 +29,7 @@ object BackupRunner {
     val EXCLUDED_TYPES = Set("") //Set("ContentDocumentLink", "Vote")
 
     def isAcceptable(sobj: DescribeGlobalSObjectResult):Boolean ={
-        sobj.isReplicateable && sobj.isCreateable && sobj.isQueryable && !EXCLUDED_TYPES.contains(sobj.getName)
+        sobj.isCreateable && sobj.isQueryable && !EXCLUDED_TYPES.contains(sobj.getName)
     }
 
     def main(args: Array[String]) {
