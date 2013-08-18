@@ -202,19 +202,7 @@ class BackupSObject(connection:PartnerConnection, objectApiName:String ) {
             val fileNameField = FILE_OBJ_TYPES(objectApiName)._1
             val fileBodyField = FILE_OBJ_TYPES(objectApiName)._2
 
-            val fileName = Config.getProperty("backup.extract.file") match {
-                case Some(str) if str.length >0 =>
-                    val fileName = record.getField(fileNameField) match {
-                        case null => ""
-                        case x => x.toString
-                    }
-                    val extIndex1 = fileName.lastIndexOf(".")
-                    val extIndex = if (extIndex1 >= 0) extIndex1 else fileName.length
-                    val name = fileName.substring(0, extIndex)
-                    val ext = if (extIndex < fileName.length) fileName.substring(extIndex+1) else ""
-                    str.replaceAll("\\$name", name).replaceAll("\\$id", record.getId).replaceAll("\\$ext", ext)
-                case _ => null
-            }
+            val fileName = Config.formatAttachmentFileName(record.getField(fileNameField), record.getId)
 
             if (null != fileName) {
                 val file = new File(Config.mkdirs(record.getType) + File.separator + fileName)
@@ -236,7 +224,7 @@ class BackupSObject(connection:PartnerConnection, objectApiName:String ) {
 
         var writerNeedsClosing = false
         lazy val csvWriter = {
-            println("about to start:  " + outputFilePath)
+            //println("about to start:  " + outputFilePath)
             Config.HookEachBefore.execute(objectApiName, outputFilePath)
             val file = new File(outputFilePath)
             file.createNewFile()

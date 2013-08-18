@@ -239,6 +239,38 @@ regardless of whether it is also specified in config file or not
 
     lazy val useBulkApi = getProperty("sf.useBulkApi")
 
+    private lazy val attachmentNameTemplate = getProperty("backup.extract.file")
+    lazy val hasAttachmentNameTemplate = attachmentNameTemplate match {
+        case Some(str) if str.trim.length >0 => true
+        case _ => false
+    }
+
+    /**
+     * convert file name based on $name, $id, $ext placeholders specified in "backup.extract.file" parameter
+     * if no template specified then user dow not want to save real files
+     */
+    def formatAttachmentFileName(fineNameFieldValue: Any, objId: String): String = {
+
+        attachmentNameTemplate match {
+            case Some(str) if str.trim.length >0 =>
+                val fileName = fineNameFieldValue match {
+                    case null => null
+                    case x if !("" + x).trim.isEmpty => x.toString
+                    case _ => null
+                }
+                if (null != fileName) {
+                    val extIndex1 = fileName.lastIndexOf(".")
+                    val extIndex = if (extIndex1 >= 0) extIndex1 else fileName.length
+                    val name = fileName.substring(0, extIndex)
+                    val ext = if (extIndex < fileName.length) fileName.substring(extIndex) else ""
+                    val res = str.replaceAll("\\$name", name).replaceAll("\\$id", objId).replaceAll("\\$ext", ext)
+                    res
+                } else
+                    null
+            case _ => null
+        }
+    }
+
     def storeLastModifiedDate(objectApiName: String, formattedDateTime: String) {
 
         if (null != lastQueryPropsFile) {

@@ -159,4 +159,59 @@ class ConfigTest extends FunSuite {
 
     }
 
+    test("File name expansion - no backup.extract.file parameter") {
+        withFile { (file, writer) =>
+        //val props = new Properties() with PropertiesOption
+        //props.store(writer, "")
+
+        //template not provided
+            Config.load(List("--config", file.getAbsolutePath, "--backup.extract.file", "" ))
+            expectResult(null) { Config.formatAttachmentFileName("picture.jpg", "123456") }
+
+        }
+    }
+    test("File name expansion - with backup.extract.file parameter 1") {
+        withFile { (file, writer) =>
+            //val props = new Properties() with PropertiesOption
+            //props.store(writer, "")
+
+            Config.load(List("--config", file.getAbsolutePath, "--backup.extract.file", """$id-$name$ext""" ))
+            //no file name
+            expectResult(null) { Config.formatAttachmentFileName(null, "123456") }
+            //blank file name
+            expectResult(null) { Config.formatAttachmentFileName("", "123457") }
+            //empty file name
+            expectResult(null) { Config.formatAttachmentFileName(" ", "123458") }
+            //file name without extension
+            expectResult("123456-picture") { Config.formatAttachmentFileName("picture", "123456") }
+            //file name with extension
+            expectResult("123456-picture.jpg") { Config.formatAttachmentFileName("picture.jpg", "123456") }
+            //file name with two dots
+            expectResult("123456-picture.abc.jpg") { Config.formatAttachmentFileName("picture.abc.jpg", "123456") }
+            //file name with empty extension
+            expectResult("123456-picture.") { Config.formatAttachmentFileName("picture.", "123456") }
+        }
+    }
+    test("File name expansion - with backup.extract.file parameter 2") {
+        withFile { (file, writer) =>
+        //val props = new Properties() with PropertiesOption
+        //props.store(writer, "")
+
+            Config.load(List("--config", file.getAbsolutePath, "--backup.extract.file", """$id$ext""" ))
+            //no file name
+            expectResult(null) { Config.formatAttachmentFileName(null, "123456") }
+            //blank file name
+            expectResult(null) { Config.formatAttachmentFileName("", "123457") }
+            //empty file name
+            expectResult(null) { Config.formatAttachmentFileName(" ", "123458") }
+            //file name without extension
+            expectResult("123456") { Config.formatAttachmentFileName("picture", "123456") }
+            //file name with extension
+            expectResult("123456.jpg") { Config.formatAttachmentFileName("picture.jpg", "123456") }
+            //file name with two dots
+            expectResult("123456.jpg") { Config.formatAttachmentFileName("picture.abc.jpg", "123456") }
+            //file name with empty extension
+            expectResult("123456.") { Config.formatAttachmentFileName("picture.", "123456") }
+        }
+    }
 }
