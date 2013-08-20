@@ -19,13 +19,13 @@
 
 package com.neowit.apex.backup
 
-import org.scalatest.{FunSuite}
+import org.scalatest.{FunSuite, PrivateMethodTester}
 import java.io.{File, FileWriter, FileNotFoundException}
 import scala.sys.process.Process
 import java.util.Properties
 import java.lang.IllegalArgumentException
 
-class ConfigTest extends FunSuite {
+class ConfigTest extends FunSuite with PrivateMethodTester {
     val isUnix = Config.isUnix
 
     val FAIL = false
@@ -211,6 +211,24 @@ class ConfigTest extends FunSuite {
             expectResult("123456.jpg") { Config.formatAttachmentFileName("picture.abc.jpg", "123456") }
             //file name with empty extension
             expectResult("123456.") { Config.formatAttachmentFileName("picture.", "123456") }
+        }
+    }
+    test("lastRunOutputFile - when it is not defined storeLastModifiedDate() should not fail") {
+        withFile { (file, writer) =>
+            Config.load(List("--config", file.getAbsolutePath))
+            val storeLastModifiedDate = PrivateMethod[(String, String)]('storeLastModifiedDate)
+            //next line must not fail with NPE or similar exception
+            Config invokePrivate storeLastModifiedDate("dummyObject__c", "some-date")
+
+        }
+    }
+    test("lastRunOutputFile - when it is not defined getStoredLastModifiedDate(objApiName) should return default value") {
+        withFile { (file, writer) =>
+            Config.load(List("--config", file.getAbsolutePath))
+            val getStoredLastModifiedDate = PrivateMethod[String]('getStoredLastModifiedDate)
+            val res = Config invokePrivate getStoredLastModifiedDate("dummyObject__c")
+            expectResult("1900-01-01T00:00:00Z") {res}
+
         }
     }
 }
