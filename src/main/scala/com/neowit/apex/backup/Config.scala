@@ -240,7 +240,7 @@ regardless of whether it is also specified in config file or not
 
     private lazy val lastQueryProps = {
         lastQueryPropsFile match {
-            case None => new Properties() //will never be used
+            case None => null //will never be used
             case Some(file) =>
                 val props = new Properties() with PropertiesOption
                 props.load(scala.io.Source.fromFile(file).bufferedReader())
@@ -306,7 +306,7 @@ regardless of whether it is also specified in config file or not
     }
 
     private def getStoredLastModifiedDate(objectApiName: String): String = {
-        val storedDateStr = lastQueryProps.getProperty(objectApiName.toLowerCase)
+        val storedDateStr = if (null != lastQueryProps) lastQueryProps.getProperty(objectApiName.toLowerCase) else null
         if (null != storedDateStr)
             storedDateStr
         else
