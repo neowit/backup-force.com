@@ -24,7 +24,7 @@ import java.util.Properties
 import java.io.{FileWriter, File}
 import scala.sys.process._
 import scala.collection.mutable.ListBuffer
-
+import akka.actor._
 
 class InvalidCommandLineException(msg: String)  extends IllegalArgumentException(msg: String) {
     def this() {
@@ -65,11 +65,10 @@ object Config {
     }
 
     type OptionMap = Map[String, String]
-    private val mainProps, lastQueryProps = new Properties() with PropertiesOption
+    private val mainProps = new Properties() with PropertiesOption
 
     private var options:OptionMap = Map()
     private var isValidCommandLine = false
-    private var lastQueryPropsFile: File = null
 
     def load(arglist: List[String]) {
         if (arglist.isEmpty) {
@@ -114,22 +113,7 @@ object Config {
 
         }
 
-        lastRunOutputFile match {
-            case None => Unit
-            case Some(fName) =>
-                lastQueryPropsFile = new File(fName)
-                //make sure folder exists
-                val dir = lastQueryPropsFile.getParentFile
-                if (!dir.exists()) {
-                    if (!dir.mkdirs())
-                        throw new RuntimeException("Failed to create folder: " + dir.getAbsolutePath + " for lastRunOutputFile " + fName)
-                }
-                if (!lastQueryPropsFile.exists) {
-                    lastQueryPropsFile.createNewFile()
-                }
-                lastQueryProps.load(scala.io.Source.fromFile(fName).bufferedReader())
-
-        }
+        //lastRunOutputFile
     }
 
 
@@ -233,7 +217,35 @@ regardless of whether it is also specified in config file or not
           path
       case _ => null
     }
-    lazy val lastRunOutputFile = getProperty("lastRunOutputFile")
+    private lazy val lastRunOutputFile = getProperty("lastRunOutputFile")
+
+    private lazy val lastQueryPropsFile: Option[File] = {
+        lastRunOutputFile match {
+            case None => Option(null)
+            case Some(fName) =>
+                val file = new File(fName)
+                //make sure folder exists
+                val dir = file.getParentFile
+                if (!dir.exists()) {
+                    if (!dir.mkdirs())
+                        throw new IllegalArgumentException("Failed to create folder: " + dir.getAbsolutePath + " for lastRunOutputFile " + fName)
+                }
+                if (!file.exists) {
+                    file.createNewFile()
+                }
+                Option(file)
+        }
+    }
+
+    private lazy val lastQueryProps = {
+        lastQueryPropsFile match {
+            case None => new Properties() //will never be used
+            case Some(file) =>
+                val props = new Properties() with PropertiesOption
+                props.load(scala.io.Source.fromFile(file).bufferedReader())
+                props
+        }
+    }
 
     lazy val globalWhere = getProperty("backup.global.where")
 
@@ -242,7 +254,7 @@ regardless of whether it is also specified in config file or not
       case _ => false
     }
 
-    private lazy val attachmentNameTemplate = getProperty("backup.extract.file")
+    private def attachmentNameTemplate = getProperty("backup.extract.file")
     lazy val hasAttachmentNameTemplate = attachmentNameTemplate match {
         case Some(str) if str.trim.length >0 => true
         case _ => false
@@ -252,11 +264,11 @@ regardless of whether it is also specified in config file or not
      * convert file name based on $name, $id, $ext placeholders specified in "backup.extract.file" parameter
      * if no template specified then user dow not want to save real files
      */
-    def formatAttachmentFileName(fineNameFieldValue: Any, objId: String): String = {
+    def formatAttachmentFileName(fileNameFieldValue: Any, objId: String): String = {
 
         attachmentNameTemplate match {
             case Some(str) if str.trim.length >0 =>
-                val fileName = fineNameFieldValue match {
+                val fileName = fileNameFieldValue match {
                     case null => null
                     case x if !("" + x).trim.isEmpty => x.toString
                     case _ => null
@@ -274,16 +286,16 @@ regardless of whether it is also specified in config file or not
         }
     }
 
-    def storeLastModifiedDate(objectApiName: String, formattedDateTime: String) {
+    private def storeLastModifiedDate(objectApiName: String, formattedDateTime: String) {
 
-        if (null != lastQueryPropsFile) {
+        if (null != lastQueryProps) {
             lastQueryProps.setProperty(objectApiName.toLowerCase, formattedDateTime)
-            val writer = new FileWriter(lastQueryPropsFile)
+            val writer = new FileWriter(lastQueryPropsFile.get)
             lastQueryProps.store(writer, "time stamps when last queried each object")
         }
     }
 
-    def getStoredLastModifiedDate(objectApiName: String): String = {
+    private def getStoredLastModifiedDate(objectApiName: String): String = {
         val storedDateStr = lastQueryProps.getProperty(objectApiName.toLowerCase)
         if (null != storedDateStr)
             storedDateStr
@@ -291,6 +303,28 @@ regardless of whether it is also specified in config file or not
             "1900-01-01T00:00:00Z"
     }
 
+    class LastQueryPropsActor extends Actor with ActorLogging {
+        override def preStart(): Unit = {
+            //load properties
+        }
+        def receive = {
+            case ("get", objectApiName:String) => sender ! getStoredLastModifiedDate(objectApiName)
+                //log.info("Received get: " + objectApiName)
+            case ("store", objectApiName:String, formattedDateTime:String) => storeLastModifiedDate(objectApiName, formattedDateTime); sender ! ""
+                //log.info("Received store: " + objectApiName + "; " + formattedDateTime)
+            case "exit" => context.stop(self); system.shutdown(); log.info("Received exit")
+            case _ => throw new IllegalArgumentException("Unsupported message")
+        }
+    }
+    private val system = ActorSystem("ConfigSystem")
+    val lastQueryPropsActor = system.actorOf(Props[LastQueryPropsActor])
+    val listener = system.actorOf(Props(new Actor {
+        def receive = {
+            case d: DeadLetter =>
+                //println("Dead LETTER: " + d)
+        }
+    }))
+    system.eventStream.subscribe(listener, classOf[DeadLetter])
     /*
      * generates specified folders nested in the main outputFolder
      */

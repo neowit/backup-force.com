@@ -21,7 +21,7 @@ package com.neowit.apex.backup
 
 import com.sforce.soap.partner.PartnerConnection
 import com.sforce.soap.partner.sobject.SObject
-import java.io.{FileWriter, ByteArrayInputStream, FileOutputStream, File}
+import java.io._
 import com.sforce.ws.util.Base64
 import com.sforce.async._
 import com.sforce.ws.bind.XmlObject
@@ -40,7 +40,8 @@ class FieldResolver (rec: SObject) {
         def findFirst(it: Iterator[XmlObject]): Option[XmlObject] = {
             if (it.hasNext) {
                 val child = it.next()
-                if (localName.equalsIgnoreCase(child.getName.getLocalPart)) {
+                val itemName = child.getName.getLocalPart
+                if ("type" != itemName && localName.equalsIgnoreCase(itemName)) {
                     Option(child)
                 } else {
                     findFirst(it)
@@ -73,6 +74,7 @@ sealed trait OperationMode {
     //provide conversion of SObject to FieldResolver
     implicit def toFieldResolver(record: SObject) = new FieldResolver(record)
 
+    val BATCH_CHECK_INTERVAL_SEC = 15 //check if batch is ready to download every N seconds
     def isApplicable(objectApiName: String): Boolean
     def isReallyApplicable(soqlParser: SOQLParser, fields: Array[com.sforce.soap.partner.Field]): Boolean = {
         isApplicable(soqlParser.from)
@@ -143,7 +145,7 @@ class AsyncMode extends OperationMode {
         var queryResults: Array[String] = null
         var keepWaiting = true
         while (keepWaiting) {
-            Thread.sleep(10 * 1000)
+            Thread.sleep(BATCH_CHECK_INTERVAL_SEC * 1000)
             info = bulkConnection.getBatchInfo(job.getId, info.getId)
             info.getState match {
                 case BatchStateEnum.Completed =>
@@ -152,9 +154,11 @@ class AsyncMode extends OperationMode {
                     keepWaiting = false
                 case BatchStateEnum.Failed =>
                     keepWaiting = false
-                    println(info.getStateMessage)
+                    //println(info.getStateMessage)
                     closeJob(bulkConnection, info.getJobId)
-                    throw new BatchProcessingException(info.getStateMessage)
+                    throw new BatchProcessingException("Warning: Batch call ["+ this.toString +"] for " + objectApiName +
+                                                        " was unsuccessful. Will try another method...\n::Original error description:\n\t" +
+                                                        info.getStateMessage + "\n")
                 case _ => //in progress
             }
         }
@@ -194,7 +198,12 @@ class AsyncMode extends OperationMode {
 
                 }
             }
-            closeJob(bulkConnection, info.getJobId)
+            //closeJob(bulkConnection, info.getJobId)
+        }
+        try {
+        closeJob(bulkConnection, info.getJobId)
+        } catch {
+            case ex: Throwable => println("failed to close job " + objectApiName)
         }
         size
 

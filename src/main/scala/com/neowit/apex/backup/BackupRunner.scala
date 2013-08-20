@@ -20,6 +20,8 @@
 package com.neowit.apex.backup
 
 import com.sforce.soap.partner.DescribeGlobalSObjectResult
+import scala.concurrent.{Future, Await}
+import scala.concurrent.duration.Duration
 
 object BackupRunner {
 
@@ -42,6 +44,8 @@ object BackupRunner {
             } catch {
                 case ex: InvalidCommandLineException => Config.help()
                 case ex: MissingRequiredConfigParameterException => println(ex.getMessage)
+            } finally {
+                Config.lastQueryPropsActor ! "exit"
             }
         }
     }
@@ -106,16 +110,48 @@ object BackupRunner {
         val allSobjectSet = mainSObjectsSet ++ customSoqlObjects
 
         require(!allSobjectSet.isEmpty, "config file contains no objects to backup")
-        if (!allSobjectSet.isEmpty) {
-            Config.HookGlobalBefore.execute()
+        def runAllProcesses() {
+            if (!allSobjectSet.isEmpty) {
+                Config.HookGlobalBefore.execute()
+            }
+            if (!Config.useBulkApi) {
+                for (objApiName <- allSobjectSet) {
+                    val backuper = new BackupSObject(connection, objApiName)
+                    backuper.run()
+                }
+            } else {
+                def callSequentially(objApiNames: List[String], processes: List[Future[(OperationMode, Boolean)]]): List[Future[(OperationMode, Boolean)]] = {
+                    objApiNames match {
+                        case objApiName :: tail =>
+                            val backuper = new BackupSObject(connection, objApiName)
+                            val f = backuper.run()
+                            callSequentially(tail, f :: processes)
+
+                        case _ => processes
+                    }
+
+                }
+                val futureList = callSequentially(allSobjectSet.toList, List[Future[(OperationMode, Boolean)]]() )
+
+                import scala.concurrent.ExecutionContext.Implicits.global
+                Await.result(Future.sequence(futureList), Duration.Inf)
+            }
+            if (!allSobjectSet.isEmpty) {
+                Config.HookGlobalAfter.execute()
+            }
         }
-        for (objApiName <- allSobjectSet) {
-            val backuper = new BackupSObject(connection, objApiName)
-            backuper.run()
+        Benchmark("useBulkApi = " + Config.useBulkApi) {
+            runAllProcesses()
         }
-        if (!allSobjectSet.isEmpty) {
-            Config.HookGlobalAfter.execute()
-        }
+
     }
+
 }
 
+/*
+import scala.concurrent._
+import ExecutionContext.Implicits.global
+import scala.util.{Success, Failure}
+import scala.concurrent.duration.Duration
+
+ */

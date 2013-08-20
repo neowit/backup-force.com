@@ -19,6 +19,11 @@
 
 package com.neowit.apex.backup
 
+import akka.pattern.ask
+import scala.concurrent.{Await, Future}
+import scala.concurrent.duration.Duration
+import akka.util.Timeout
+
 
 class SOQLParser(soqlStr:String) {
 
@@ -34,9 +39,12 @@ class SOQLParser(soqlStr:String) {
     lazy val from = getAsString(fromVal)
     lazy val tail = {
         var tailStr = getAsString(tailVal)
-        //val token = "$object.lastmodifieddate"
+        //find "$object.lastmodifieddate"
         val p = "(?i)\\$object\\.lastmodifieddate".r
-        p.replaceAllIn(tailStr, Config.getStoredLastModifiedDate(from))
+        //p.replaceAllIn(tailStr, Config.getStoredLastModifiedDate(from))
+        val f = Config.lastQueryPropsActor.?("get", from)(Timeout.intToTimeout(1000))
+        val lastModifiedDate = Await.result(f, Duration.Inf)
+        p.replaceAllIn(tailStr, lastModifiedDate.toString)
     }
     lazy val fields:List[String] = if ("*" == select) List("*") else select.split(",").map(fName => fName.trim).toList
     lazy val hasTail = tail.length > 0

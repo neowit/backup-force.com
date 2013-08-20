@@ -24,6 +24,9 @@ import com.sforce.soap.partner.fault.{ApiQueryFault, InvalidFieldFault}
 import com.sforce.async._
 import java.io.File
 
+import scala.concurrent._
+import scala.concurrent.ExecutionContext.Implicits.global
+
 object ZuluTime {
     val zulu = new java.text.SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'")
     zulu.setTimeZone(java.util.TimeZone.getTimeZone("GMT"))
@@ -37,7 +40,7 @@ class BatchProcessingException(msg:String, code: AsyncExceptionCode) extends Asy
 class BackupSObject(connection:PartnerConnection, objectApiName:String ) {
 
 
-    def run() {
+    def run(): Future[(OperationMode, Boolean)] = {
         require(null != Config.outputFolder, "config file missing 'outputFolder' value")
         val describeRes = connection.describeSObject(objectApiName)
         val allFields = describeRes.getFields
@@ -51,7 +54,7 @@ class BackupSObject(connection:PartnerConnection, objectApiName:String ) {
 
 
         /**
-         * try each mode in sequecnce
+         * try each mode in sequence
          * @return - (Mode, success=true/false)
          */
         def runOneMode(availableModes: List[OperationMode]): (OperationMode, Boolean) = {
@@ -96,7 +99,8 @@ class BackupSObject(connection:PartnerConnection, objectApiName:String ) {
                     println(objectApiName + ": " + size + " " + {if (currentMode.isAsync) "bytes" else "lines"})
                     result = (currentMode, true)
                     //store date/time in lastQuery.properties
-                    Config.storeLastModifiedDate(objectApiName, ZuluTime.format(timeStampCal.getTime))
+                    //Config.storeLastModifiedDate(objectApiName, ZuluTime.format(timeStampCal.getTime))
+                    Config.lastQueryPropsActor ! ("store", objectApiName, ZuluTime.format(timeStampCal.getTime))
 
                 } catch {
                     case ex: InvalidFieldFault => println(ex); if (currentMode.allowGlobalWhere) println("Will try once again without global.where")
@@ -104,6 +108,7 @@ class BackupSObject(connection:PartnerConnection, objectApiName:String ) {
                         println("Object " + objectApiName +" can not be queried in batch mode due to Implementation restriction")
                         println(ex)
                         println(ex.getStackTraceString)
+                    case ex: BatchProcessingException => println(ex.getExceptionMessage)
                     case ex:Throwable =>
                         println("Object " + objectApiName +" retrieve failed")
                         println(ex)
@@ -118,14 +123,18 @@ class BackupSObject(connection:PartnerConnection, objectApiName:String ) {
         }
 
         //finally - run the process
-        runOneMode(modes)
+        if (Config.useBulkApi) {
+            val f = future {
+                runOneMode(modes)
+            }
+            f
+        } else {
+            //sync mode, return nothing
+            runOneMode(modes)
+            null
+        }
 
     }
-
-
-
-
-
 
     def onFileComplete(objectApiName: String, outputFilePath: String, size: Long) {
         if (size> 0) {
