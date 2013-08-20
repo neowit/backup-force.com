@@ -233,7 +233,7 @@ abstract class SyncMode extends OperationMode {
             Config.HookEachBefore.execute(objectApiName, outputFilePath)
             val file = new File(outputFilePath)
             file.createNewFile()
-            val writer = new FileWriter(file)
+            val writer = new PrintWriter(file, "UTF-8")
             writerNeedsClosing = true
             new com.sforce.bulk.CsvWriter(fieldList.toArray[String], writer)
         }
