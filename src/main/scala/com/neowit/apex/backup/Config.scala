@@ -25,6 +25,7 @@ import java.io.{FileWriter, File}
 import scala.sys.process._
 import scala.collection.mutable.ListBuffer
 import akka.actor._
+import scala.util.matching.Regex
 
 class InvalidCommandLineException(msg: String)  extends IllegalArgumentException(msg: String) {
     def this() {
@@ -278,7 +279,16 @@ regardless of whether it is also specified in config file or not
                     val extIndex = if (extIndex1 >= 0) extIndex1 else fileName.length
                     val name = fileName.substring(0, extIndex)
                     val ext = if (extIndex < fileName.length) fileName.substring(extIndex) else ""
-                    val res = str.replaceAll("\\$name", name).replaceAll("\\$id", objId).replaceAll("\\$ext", ext)
+                    val res = try {
+                        str.replaceAll("\\$name", Regex.quoteReplacement(name)).replaceAll("\\$id", Regex.quoteReplacement(objId)).replaceAll("\\$ext", Regex.quoteReplacement(ext))
+                    } catch {
+                        case ex: Throwable =>
+                        println("ERROR, failed to apply file name replacements")
+                        println("str=" + str)
+                        println("name=" + name + "; id=" + objId + "; ext=" + ext)
+                        println(ex)
+                        null
+                    }
                     res
                 } else
                     null
