@@ -210,7 +210,10 @@ class AsyncMode extends OperationMode {
         try {
             closeJob(bulkConnection, info.getJobId)
         } catch {
-            case ex: Throwable => println("failed to close job " + objectApiName)
+            case ex: Throwable =>
+                println("failed to close job " + objectApiName)
+                println(ex)
+                println(ex.getStackTraceString)
         }
         size
 

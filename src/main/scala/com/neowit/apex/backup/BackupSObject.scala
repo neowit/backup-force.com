@@ -26,6 +26,7 @@ import java.io.File
 
 import scala.concurrent._
 import scala.concurrent.ExecutionContext.Implicits.global
+import com.sforce.ws.ConnectionException
 
 object ZuluTime {
     val zulu = new java.text.SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'")
@@ -88,10 +89,11 @@ class BackupSObject(connection:PartnerConnection, objectApiName:String ) {
                 val queryString = {"select " + selectFieldsStr + " from " + objectApiName +
                     (if (soqlParser.hasTail) " " + soqlParser.tail else "") }
 
-                //get current server time, i.e. time at the time when query started
-                val timeStampCal = connection.getServerTimestamp.getTimestamp
 
                 try {
+                    //get current server time, i.e. time at the time when query started
+                    val timeStampCal = connection.getServerTimestamp.getTimestamp
+
                     println(objectApiName + ": Trying mode: " + currentMode)
                     val size = currentMode.load(connection, objectApiName, soqlParser, queryString, fieldList, outputFilePath)
 
@@ -104,13 +106,40 @@ class BackupSObject(connection:PartnerConnection, objectApiName:String ) {
 
                 } catch {
                     case ex: InvalidFieldFault => println(ex); if (currentMode.allowGlobalWhere) println("Will try once again without global.where")
-                    case ex: ApiQueryFault if ex.getExceptionMessage.indexOf("Implementation restriction:") >=0  =>
-                        println("Object " + objectApiName +" can not be queried in batch mode due to Implementation restriction")
+                    case ex: ApiQueryFault =>
+                        if (ex.getExceptionMessage.indexOf("Implementation restriction:") >=0) {
+                            println("Warning: Object " + objectApiName +" can not be queried in batch mode due to Implementation restriction")
+                            println(ex.getExceptionMessage)
+                        } else {
+                            //all other ApiQueryFault related problems
+                            println("Object " + objectApiName +" retrieve failed")
+                            println(ex)
+                        }
+                    case ex: BatchProcessingException => println(ex.getExceptionMessage)
+                    case ex: AsyncApiException =>
+                        if (AsyncExceptionCode.InvalidEntity == ex.getExceptionCode) {
+                            //exceptionMessage='Entity 'xxx' is not supported by the Bulk API.'
+                            println("Warning: Object " + objectApiName +" can not be queried in Bulk API mode ")
+                            println(ex.getExceptionMessage)
+                        } else {
+                            println("Object " + objectApiName +" - Bulk API retrieve failed.")
+                            println(ex)
+                            println(ex.getStackTraceString)
+                        }
+                    case ex: OutOfMemoryError =>
+                        println("Error: Object " + objectApiName +" retrieve failed - OutOfMemoryError")
+                        println("\tSometimes this error can be avoided by changing java command line parameters")
+                        println("\tFor example, to allow java machine to use 1024MB RAM change your command line like so")
+                        println("\tjava -Xmx1024m -jar …\n")
+
                         println(ex)
                         println(ex.getStackTraceString)
-                    case ex: BatchProcessingException => println(ex.getExceptionMessage)
-                    case ex:Throwable =>
+
+                    case ex: Throwable =>
                         println("Object " + objectApiName +" retrieve failed")
+                        if (ex.isInstanceOf[ConnectionException] && ex.getMessage.indexOf("Failed to send request to") >=0) {
+                            println("Error: Communication problem. Try to increase value of 'http.connectionTimeoutSecs' and/or 'http.readTimeoutSecs' configuration parameters.\n")
+                        }
                         println(ex)
                         println(ex.getStackTraceString)
                 }
