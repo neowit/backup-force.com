@@ -87,14 +87,15 @@ sealed trait OperationMode {
 
     protected def processRecord(record: SObject) {
         //save attachment as file if "backup.attachment.asfile" is not null
-        val FILE_OBJ_TYPES = Map("attachment" -> ("Name", "Body"), "document" -> ("Name", "Body"),
-            "contentversion" -> ("PathOnClient", "VersionData"))
+        val FILE_OBJ_TYPES = Map("attachment" -> ("Name", "Body", ""), "document" -> ("DeveloperName", "Body", "Type"),
+            "contentversion" -> ("PathOnClient", "VersionData", ""))
         val objectApiName = record.getType.toLowerCase
         if ( FILE_OBJ_TYPES.contains(objectApiName)) {
             val fileNameField = FILE_OBJ_TYPES(objectApiName)._1
             val fileBodyField = FILE_OBJ_TYPES(objectApiName)._2
+            val fileExtensionField = FILE_OBJ_TYPES(objectApiName)._3
 
-            val fileName = Config.formatAttachmentFileName(record.getField(fileNameField), record.getId)
+            val fileName = Config.formatAttachmentFileName(record.getField(fileNameField), record.getId, record.getField(fileExtensionField))
 
             if (null != fileName) {
                 val file = new File(Config.mkdirs(record.getType) + File.separator + fileName)
@@ -103,9 +104,15 @@ sealed trait OperationMode {
                     case x => x.toString.getBytes
                 }
                 if (buffer.length > 0) {
-                    val output = new FileOutputStream(file)
-                    output.write(Base64.decode(buffer))
-                    output.close()
+                    try {
+                        val output = new FileOutputStream(file)
+                        output.write(Base64.decode(buffer))
+                        output.close()
+                    } catch {
+                        case ex: FileNotFoundException =>
+                            println("Error: Unable to save file: '" + fileName + "'")
+                            println(ex.getMessage)
+                    }
                 }
             }
         }
@@ -156,7 +163,7 @@ class AsyncMode extends OperationMode {
                     keepWaiting = false
                     //println(info.getStateMessage)
                     closeJob(bulkConnection, info.getJobId)
-                    throw new BatchProcessingException("Warning: Batch call ["+ this.toString +"] for " + objectApiName +
+                    throw new BatchProcessingException("Warning: Bulk API call ["+ this.toString +"] for " + objectApiName +
                                                         " was unsuccessful. Will try another method...\n::Original error description:\n\t" +
                                                         info.getStateMessage + "\n")
                 case _ => //in progress
@@ -201,7 +208,7 @@ class AsyncMode extends OperationMode {
             //closeJob(bulkConnection, info.getJobId)
         }
         try {
-        closeJob(bulkConnection, info.getJobId)
+            closeJob(bulkConnection, info.getJobId)
         } catch {
             case ex: Throwable => println("failed to close job " + objectApiName)
         }

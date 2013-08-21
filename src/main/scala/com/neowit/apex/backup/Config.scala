@@ -265,7 +265,7 @@ regardless of whether it is also specified in config file or not
      * convert file name based on $name, $id, $ext placeholders specified in "backup.extract.file" parameter
      * if no template specified then user dow not want to save real files
      */
-    def formatAttachmentFileName(fileNameFieldValue: Any, objId: String): String = {
+    def formatAttachmentFileName(fileNameFieldValue: Any, objId: String, extensionFieldValue: Any = null): String = {
 
         attachmentNameTemplate match {
             case Some(str) if str.trim.length >0 =>
@@ -278,7 +278,9 @@ regardless of whether it is also specified in config file or not
                     val extIndex1 = fileName.lastIndexOf(".")
                     val extIndex = if (extIndex1 >= 0) extIndex1 else fileName.length
                     val name = fileName.substring(0, extIndex)
-                    val ext = if (extIndex < fileName.length) fileName.substring(extIndex) else ""
+                    val ext = if (null != extensionFieldValue) "." + extensionFieldValue
+                        else
+                            if (extIndex < fileName.length) fileName.substring(extIndex) else ""
                     val res = try {
                         str.replaceAll("\\$name", Regex.quoteReplacement(name)).replaceAll("\\$id", Regex.quoteReplacement(objId)).replaceAll("\\$ext", Regex.quoteReplacement(ext))
                     } catch {

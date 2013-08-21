@@ -189,6 +189,10 @@ class ConfigTest extends FunSuite with PrivateMethodTester {
             expectResult("123456-picture.abc.jpg") { Config.formatAttachmentFileName("picture.abc.jpg", "123456") }
             //file name with empty extension
             expectResult("123456-picture.") { Config.formatAttachmentFileName("picture.", "123456") }
+            //file name with provided extension
+            expectResult("123456-picture.doc") { Config.formatAttachmentFileName("picture.", "123456", "doc") }
+            expectResult("123456-picture.doc") { Config.formatAttachmentFileName("picture", "123456", "doc") }
+            expectResult("123456-Delivery_Action_Plan_v0_6.doc") { Config.formatAttachmentFileName("Delivery_Action_Plan_v0_6", "123456", "doc") }
         }
     }
     test("File name expansion - with backup.extract.file parameter 2") {
