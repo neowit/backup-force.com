@@ -99,7 +99,9 @@ sealed trait OperationMode {
             val fileName = appConfig.formatAttachmentFileName(record.getField(fileNameField), record.getId, record.getField(fileExtensionField))
 
             if (null != fileName) {
-                val file = new File(appConfig.mkdirs(record.getType) + File.separator + fileName)
+                //remove all characters '\/:*?' in file name because they may make file path invalid
+                val cleanedFileName ="[\\\\|:|/\\*\\?]".r.replaceAllIn(fileName, "")
+                val file = new File(appConfig.mkdirs(record.getType) + File.separator + cleanedFileName)
                 val buffer = record.getField(fileBodyField) match {
                     case null => Array[Byte]()
                     case x => x.toString.getBytes
@@ -111,7 +113,7 @@ sealed trait OperationMode {
                         output.close()
                     } catch {
                         case ex: FileNotFoundException =>
-                            println("Error: Unable to save file: '" + fileName + "'")
+                            println("Error: Unable to save file: '" + fileName + "'\n using path: " + file.getAbsolutePath)
                             println(ex.getMessage)
                     }
                 }
