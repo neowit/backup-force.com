@@ -7,6 +7,7 @@ import java.io.{File, FileWriter}
 
 class SOQLParserTest extends FunSuite {
 
+
     def withFile(testCode: (File, FileWriter) => Any) {
         val file = File.createTempFile("test", ".properties") // create the fixture
         val writer = new FileWriter(file)
@@ -43,11 +44,8 @@ class SOQLParserTest extends FunSuite {
     }
 
     test("LastModifiedDate Replacement") {
-
-        //Config is a singleton, so have to cheat to force re-initialisation of Config object
-        val c = Config.getClass.getDeclaredConstructor()
-        c.setAccessible(true)
-        c.newInstance()
+        Config.resetConfig
+        val appConfig = Config.getConfig
 
         withFile { (file, writer) =>
             withFile {(f2, w2) =>
@@ -55,7 +53,7 @@ class SOQLParserTest extends FunSuite {
                 props2.setProperty("account", "1917-01-01T00:00:00Z")
                 props2.store(w2, "")
 
-                Config.load(List("--config", file.getAbsolutePath, "--lastRunOutputFile", f2.getAbsolutePath))
+                appConfig.load(List("--config", file.getAbsolutePath, "--lastRunOutputFile", f2.getAbsolutePath))
 
                 val soql1 = "select Id, name from Account where LastModifiedDate >= $Object.Lastmodifieddate"
                 assert("where LastModifiedDate >= 1917-01-01T00:00:00Z" == new SOQLParser(soql1).tail)

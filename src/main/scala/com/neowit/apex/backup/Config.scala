@@ -51,6 +51,32 @@ trait PropertiesOption extends Properties{
 }
 
 object Config {
+    private var config: Config = new Config
+    def getConfig = {
+        config
+    }
+    def resetConfig = {
+        //used in unit tests
+        config = new Config
+    }
+
+    class LastQueryPropsActor() extends Actor with ActorLogging {
+        lazy val appConfig: Config = Config.getConfig
+
+        override def preStart(): Unit = {
+            //load properties
+        }
+        def receive = {
+            case ("get", objectApiName:String) => sender ! appConfig.getStoredLastModifiedDate(objectApiName)
+            //log.info("Received get: " + objectApiName)
+            case ("store", objectApiName:String, formattedDateTime:String) => appConfig.storeLastModifiedDate(objectApiName, formattedDateTime); sender ! ""
+            //log.info("Received store: " + objectApiName + "; " + formattedDateTime)
+            case "exit" => context.stop(self); appConfig.actorSystem.shutdown(); log.info("Received exit")
+            case _ => throw new IllegalArgumentException("Unsupported message")
+        }
+    }
+}
+class Config {
     def isUnix = {
         val os = System.getProperty("os.name").toLowerCase
         os.contains("nux") || os.contains("mac")
@@ -315,28 +341,8 @@ regardless of whether it is also specified in config file or not
             "1900-01-01T00:00:00Z"
     }
 
-    class LastQueryPropsActor extends Actor with ActorLogging {
-        override def preStart(): Unit = {
-            //load properties
-        }
-        def receive = {
-            case ("get", objectApiName:String) => sender ! getStoredLastModifiedDate(objectApiName)
-                //log.info("Received get: " + objectApiName)
-            case ("store", objectApiName:String, formattedDateTime:String) => storeLastModifiedDate(objectApiName, formattedDateTime); sender ! ""
-                //log.info("Received store: " + objectApiName + "; " + formattedDateTime)
-            case "exit" => context.stop(self); system.shutdown(); log.info("Received exit")
-            case _ => throw new IllegalArgumentException("Unsupported message")
-        }
-    }
-    private val system = ActorSystem("ConfigSystem")
-    val lastQueryPropsActor = system.actorOf(Props[LastQueryPropsActor])
-    val listener = system.actorOf(Props(new Actor {
-        def receive = {
-            case d: DeadLetter =>
-                //println("Dead LETTER: " + d)
-        }
-    }))
-    system.eventStream.subscribe(listener, classOf[DeadLetter])
+    private val actorSystem = ActorSystem("ConfigSystem")
+    lazy val lastQueryPropsActor = actorSystem.actorOf(Props[Config.LastQueryPropsActor])
     /*
      * generates specified folders nested in the main outputFolder
      */

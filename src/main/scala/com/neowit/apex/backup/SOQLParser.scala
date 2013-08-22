@@ -20,12 +20,13 @@
 package com.neowit.apex.backup
 
 import akka.pattern.ask
-import scala.concurrent.{Await, Future}
+import scala.concurrent.{Await}
 import scala.concurrent.duration.Duration
 import akka.util.Timeout
 
 
 class SOQLParser(soqlStr:String) {
+    val appConfig = Config.getConfig
 
     private val twoParts = """select (.*) from (\w*)""".r
     private val threeParts = """select (.*) from (\w*)(.*)""".r
@@ -41,8 +42,8 @@ class SOQLParser(soqlStr:String) {
         var tailStr = getAsString(tailVal)
         //find "$object.lastmodifieddate"
         val p = "(?i)\\$object\\.lastmodifieddate".r
-        //p.replaceAllIn(tailStr, Config.getStoredLastModifiedDate(from))
-        val f = Config.lastQueryPropsActor.?("get", from)(Timeout.intToTimeout(1000))
+        //p.replaceAllIn(tailStr, appConfig.getStoredLastModifiedDate(from))
+        val f = appConfig.lastQueryPropsActor.?("get", from)(Timeout.intToTimeout(1000))
         val lastModifiedDate = Await.result(f, Duration.Inf)
         p.replaceAllIn(tailStr, lastModifiedDate.toString)
     }

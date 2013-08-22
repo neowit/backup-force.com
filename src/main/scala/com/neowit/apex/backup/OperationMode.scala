@@ -73,6 +73,7 @@ class FieldResolver (rec: SObject) {
 sealed trait OperationMode {
     //provide conversion of SObject to FieldResolver
     implicit def toFieldResolver(record: SObject) = new FieldResolver(record)
+    val appConfig = Config.getConfig
 
     val BATCH_CHECK_INTERVAL_SEC = 15 //check if batch is ready to download every N seconds
     def isApplicable(objectApiName: String): Boolean
@@ -95,10 +96,10 @@ sealed trait OperationMode {
             val fileBodyField = FILE_OBJ_TYPES(objectApiName)._2
             val fileExtensionField = FILE_OBJ_TYPES(objectApiName)._3
 
-            val fileName = Config.formatAttachmentFileName(record.getField(fileNameField), record.getId, record.getField(fileExtensionField))
+            val fileName = appConfig.formatAttachmentFileName(record.getField(fileNameField), record.getId, record.getField(fileExtensionField))
 
             if (null != fileName) {
-                val file = new File(Config.mkdirs(record.getType) + File.separator + fileName)
+                val file = new File(appConfig.mkdirs(record.getType) + File.separator + fileName)
                 val buffer = record.getField(fileBodyField) match {
                     case null => Array[Byte]()
                     case x => x.toString.getBytes
@@ -121,7 +122,7 @@ sealed trait OperationMode {
 
 class AsyncMode extends OperationMode {
     override def isApplicable(objectApiName: String): Boolean = {
-        Config.useBulkApi
+        appConfig.useBulkApi
     }
     override def isReallyApplicable(soqlParser: SOQLParser, fields: Array[com.sforce.soap.partner.Field]): Boolean = {
         //Batch Apex does not support relationship fields and base64 fields
@@ -177,7 +178,7 @@ class AsyncMode extends OperationMode {
                 lazy val output = {
                     //println("about to start:  " + outputFilePath)
                     //run user's before hook
-                    Config.HookEachBefore.execute(objectApiName, outputFilePath)
+                    appConfig.HookEachBefore.execute(objectApiName, outputFilePath)
                     writerNeedsClosing = true
                     val file = new File(outputFilePath)
                     file.createNewFile()
@@ -224,7 +225,7 @@ class AsyncMode extends OperationMode {
         config.setSessionId(connection.getConfig.getSessionId)
 
         val soapServiceEndpoint = connection.getConfig.getServiceEndpoint
-        val restEndpoint = soapServiceEndpoint.take(soapServiceEndpoint.indexOf("Soap/")) + "async/" + Config.apiVersion
+        val restEndpoint = soapServiceEndpoint.take(soapServiceEndpoint.indexOf("Soap/")) + "async/" + appConfig.apiVersion
         config.setRestEndpoint(restEndpoint)
         config.setCompression(true)
 
@@ -249,7 +250,7 @@ abstract class SyncMode extends OperationMode {
         var writerNeedsClosing = false
         lazy val csvWriter = {
             //println("about to start:  " + outputFilePath)
-            Config.HookEachBefore.execute(objectApiName, outputFilePath)
+            appConfig.HookEachBefore.execute(objectApiName, outputFilePath)
             val file = new File(outputFilePath)
             file.createNewFile()
             val writer = new PrintWriter(file, "UTF-8")
@@ -288,8 +289,8 @@ abstract class SyncMode extends OperationMode {
 }
 case object AsyncWithGlobalWhere extends AsyncMode {
     override def isApplicable(objectApiName: String): Boolean = {
-        val configSoql = Config.getProperty("backup.soql." + objectApiName)
-        super.isApplicable(objectApiName) &&  None == configSoql && None != Config.globalWhere
+        val configSoql = appConfig.getProperty("backup.soql." + objectApiName)
+        super.isApplicable(objectApiName) &&  None == configSoql && None != appConfig.globalWhere
     }
     override val allowGlobalWhere = true
 }
@@ -300,8 +301,8 @@ case object AsyncWithoutGlobalWhere extends AsyncMode {
 }
 case object SyncWithGlobalWhere extends SyncMode {
     override def isApplicable(objectApiName: String): Boolean = {
-        val configSoql = Config.getProperty("backup.soql." + objectApiName)
-        None == configSoql && None != Config.globalWhere
+        val configSoql = appConfig.getProperty("backup.soql." + objectApiName)
+        None == configSoql && None != appConfig.globalWhere
     }
     override val allowGlobalWhere = true
 }

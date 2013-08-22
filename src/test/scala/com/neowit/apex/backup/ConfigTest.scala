@@ -26,7 +26,8 @@ import java.util.Properties
 import java.lang.IllegalArgumentException
 
 class ConfigTest extends FunSuite with PrivateMethodTester {
-    val isUnix = Config.isUnix
+    val appConfig = Config.getConfig
+    val isUnix = appConfig.isUnix
 
     val FAIL = false
     def withFile(testCode: (File, FileWriter) => Any) {
@@ -43,7 +44,7 @@ class ConfigTest extends FunSuite with PrivateMethodTester {
 
     test("No Command Params") {
         try {
-            Config.load(List())
+            appConfig.load(List())
         } catch {
             case ex: InvalidCommandLineException => println("OK")
             case ex: Throwable => assert(FAIL, "Expected InvalidCommandLineException for empty command line. " + ex)
@@ -51,7 +52,7 @@ class ConfigTest extends FunSuite with PrivateMethodTester {
     }
     test("Key without value") {
         try {
-            Config.load(List("--incorrect"))
+            appConfig.load(List("--incorrect"))
         } catch {
             case ex: InvalidCommandLineException => println("OK")
             case ex: Throwable => assert(FAIL, "Expected InvalidCommandLineException for empty command line." + ex)
@@ -59,12 +60,12 @@ class ConfigTest extends FunSuite with PrivateMethodTester {
     }
     test("No --config Param") {
         intercept[IllegalArgumentException] {
-            Config.load(List("--sf.username", "aaa@bb.cc"))
+            appConfig.load(List("--sf.username", "aaa@bb.cc"))
         }
     }
     test("Missing ConfigFile") {
         try {
-            Config.load(List("--config", "/some/path"))
+            appConfig.load(List("--config", "/some/path"))
         } catch {
             case ex: FileNotFoundException => println("OK")
             case ex: Throwable => assert(FAIL, "Expected FileNotFoundException for missing config parameter. " + ex)
@@ -77,18 +78,18 @@ class ConfigTest extends FunSuite with PrivateMethodTester {
             props.setProperty("sf.username", "aaa@bb.cc")
             props.store(writer, "")
 
-            Config.load(List("--config", file.getAbsolutePath))
-            expectResult(None) { Config.getProperty("password")  }
+            appConfig.load(List("--config", file.getAbsolutePath))
+            expectResult(None) { appConfig.getProperty("password")  }
         }
     }
     test("Command Line - Key Without Value") {
         intercept[InvalidCommandLineException]{
-            Config.load(List("--config"))
+            appConfig.load(List("--config"))
         }
     }
     test("Command Line - Key Without --") {
         intercept[InvalidCommandLineException]{
-            Config.load(List("config", "val"))
+            appConfig.load(List("config", "val"))
         }
     }
     test("Parameter from command line take priority over config") {
@@ -97,8 +98,8 @@ class ConfigTest extends FunSuite with PrivateMethodTester {
             props.setProperty("param1", "val1")
             props.store(writer, "")
 
-            Config.load(List("--config", file.getAbsolutePath, "--param1", "val2"))
-            expectResult(Option("val2")) { Config.getProperty("param1")  }
+            appConfig.load(List("--config", file.getAbsolutePath, "--param1", "val2"))
+            expectResult(Option("val2")) { appConfig.getProperty("param1")  }
         }
     }
     test("Parameter from second --config takes priority over first --config") {
@@ -111,8 +112,8 @@ class ConfigTest extends FunSuite with PrivateMethodTester {
                 props2.setProperty("sf.serverurl", "val2")
                 props2.store(writer, "")
 
-                Config.load(List("--config", file.getAbsolutePath, "--config", f2.getAbsolutePath))
-                expectResult(Some("val2")) { Config.getProperty("sf.serverurl") }
+                appConfig.load(List("--config", file.getAbsolutePath, "--config", f2.getAbsolutePath))
+                expectResult(Some("val2")) { appConfig.getProperty("sf.serverurl") }
             }
 
         }
@@ -123,37 +124,37 @@ class ConfigTest extends FunSuite with PrivateMethodTester {
             props.setProperty("sf.serverurl", "val1")
             props.store(writer, "")
 
-            Config.load(List("--config", file.getAbsolutePath, "--config", file.getAbsolutePath, "--sf.serverurl", "val2"))
-            expectResult(Some("val2")) { Config.getProperty("sf.serverurl") }
+            appConfig.load(List("--config", file.getAbsolutePath, "--config", file.getAbsolutePath, "--sf.serverurl", "val2"))
+            expectResult(Some("val2")) { appConfig.getProperty("sf.serverurl") }
         }
     }
     test("ShellEvaluation") {
         if (isUnix) {
             val s1 = Option("nothing to evaluate")
-            expectResult(s1) { Config.evalShellCommands(s1) }
-            //assert(s1 == Config.evalShellCommands(s1))
+            expectResult(s1) { appConfig.evalShellCommands(s1) }
+            //assert(s1 == appConfig.evalShellCommands(s1))
 
             val s2 = Option("`broken string")
-            expectResult(s2) { Config.evalShellCommands(s2) }
+            expectResult(s2) { appConfig.evalShellCommands(s2) }
 
             val s3 = Option("`echo abcd`")
-            assert(Option("abcd") == Config.evalShellCommands(s3))
+            assert(Option("abcd") == appConfig.evalShellCommands(s3))
 
             val s4 = Option("""`echo abcd`""")
-            expectResult(Option("abcd")) { Config.evalShellCommands(s4) }
+            expectResult(Option("abcd")) { appConfig.evalShellCommands(s4) }
 
             val s5 = Option("""some text`echo abcd`""")
-            expectResult(Option("some textabcd")) { Config.evalShellCommands(s5) }
+            expectResult(Option("some textabcd")) { appConfig.evalShellCommands(s5) }
 
             val s6 = Option("""text before`echo abcd`text after""")
-            expectResult(Option("text beforeabcdtext after")) { Config.evalShellCommands(s6) }
+            expectResult(Option("text beforeabcdtext after")) { appConfig.evalShellCommands(s6) }
 
             val s7 = Option("""text before`echo abcd`text after`echo efgh`""")
-            expectResult(Option("text beforeabcdtext afterefgh")) { Config.evalShellCommands(s7) }
+            expectResult(Option("text beforeabcdtext afterefgh")) { appConfig.evalShellCommands(s7) }
 
             val now = Process("date +%Y%m%d-%H%M").lines.head
             val s9 = Option("I:/SFDC-Exports/backup-force.com/extracts/`date +%Y%m%d-%H%M`")
-            expectResult(Option("I:/SFDC-Exports/backup-force.com/extracts/" + now)) { Config.evalShellCommands(s9) }
+            expectResult(Option("I:/SFDC-Exports/backup-force.com/extracts/" + now)) { appConfig.evalShellCommands(s9) }
         }
 
     }
@@ -164,8 +165,8 @@ class ConfigTest extends FunSuite with PrivateMethodTester {
         //props.store(writer, "")
 
         //template not provided
-            Config.load(List("--config", file.getAbsolutePath, "--backup.extract.file", "" ))
-            expectResult(null) { Config.formatAttachmentFileName("picture.jpg", "123456") }
+            appConfig.load(List("--config", file.getAbsolutePath, "--backup.extract.file", "" ))
+            expectResult(null) { appConfig.formatAttachmentFileName("picture.jpg", "123456") }
 
         }
     }
@@ -174,25 +175,25 @@ class ConfigTest extends FunSuite with PrivateMethodTester {
             //val props = new Properties() with PropertiesOption
             //props.store(writer, "")
 
-            Config.load(List("--config", file.getAbsolutePath, "--backup.extract.file", """$id-$name$ext""" ))
+            appConfig.load(List("--config", file.getAbsolutePath, "--backup.extract.file", """$id-$name$ext""" ))
             //no file name
-            expectResult(null) { Config.formatAttachmentFileName(null, "123456") }
+            expectResult(null) { appConfig.formatAttachmentFileName(null, "123456") }
             //blank file name
-            expectResult(null) { Config.formatAttachmentFileName("", "123457") }
+            expectResult(null) { appConfig.formatAttachmentFileName("", "123457") }
             //empty file name
-            expectResult(null) { Config.formatAttachmentFileName(" ", "123458") }
+            expectResult(null) { appConfig.formatAttachmentFileName(" ", "123458") }
             //file name without extension
-            expectResult("123456-picture") { Config.formatAttachmentFileName("picture", "123456") }
+            expectResult("123456-picture") { appConfig.formatAttachmentFileName("picture", "123456") }
             //file name with extension
-            expectResult("123456-picture.jpg") { Config.formatAttachmentFileName("picture.jpg", "123456") }
+            expectResult("123456-picture.jpg") { appConfig.formatAttachmentFileName("picture.jpg", "123456") }
             //file name with two dots
-            expectResult("123456-picture.abc.jpg") { Config.formatAttachmentFileName("picture.abc.jpg", "123456") }
+            expectResult("123456-picture.abc.jpg") { appConfig.formatAttachmentFileName("picture.abc.jpg", "123456") }
             //file name with empty extension
-            expectResult("123456-picture.") { Config.formatAttachmentFileName("picture.", "123456") }
+            expectResult("123456-picture.") { appConfig.formatAttachmentFileName("picture.", "123456") }
             //file name with provided extension
-            expectResult("123456-picture.doc") { Config.formatAttachmentFileName("picture.", "123456", "doc") }
-            expectResult("123456-picture.doc") { Config.formatAttachmentFileName("picture", "123456", "doc") }
-            expectResult("123456-Delivery_Action_Plan_v0_6.doc") { Config.formatAttachmentFileName("Delivery_Action_Plan_v0_6", "123456", "doc") }
+            expectResult("123456-picture.doc") { appConfig.formatAttachmentFileName("picture.", "123456", "doc") }
+            expectResult("123456-picture.doc") { appConfig.formatAttachmentFileName("picture", "123456", "doc") }
+            expectResult("123456-Delivery_Action_Plan_v0_6.doc") { appConfig.formatAttachmentFileName("Delivery_Action_Plan_v0_6", "123456", "doc") }
         }
     }
     test("File name expansion - with backup.extract.file parameter 2") {
@@ -200,37 +201,37 @@ class ConfigTest extends FunSuite with PrivateMethodTester {
         //val props = new Properties() with PropertiesOption
         //props.store(writer, "")
 
-            Config.load(List("--config", file.getAbsolutePath, "--backup.extract.file", """$id$ext""" ))
+            appConfig.load(List("--config", file.getAbsolutePath, "--backup.extract.file", """$id$ext""" ))
             //no file name
-            expectResult(null) { Config.formatAttachmentFileName(null, "123456") }
+            expectResult(null) { appConfig.formatAttachmentFileName(null, "123456") }
             //blank file name
-            expectResult(null) { Config.formatAttachmentFileName("", "123457") }
+            expectResult(null) { appConfig.formatAttachmentFileName("", "123457") }
             //empty file name
-            expectResult(null) { Config.formatAttachmentFileName(" ", "123458") }
+            expectResult(null) { appConfig.formatAttachmentFileName(" ", "123458") }
             //file name without extension
-            expectResult("123456") { Config.formatAttachmentFileName("picture", "123456") }
+            expectResult("123456") { appConfig.formatAttachmentFileName("picture", "123456") }
             //file name with extension
-            expectResult("123456.jpg") { Config.formatAttachmentFileName("picture.jpg", "123456") }
+            expectResult("123456.jpg") { appConfig.formatAttachmentFileName("picture.jpg", "123456") }
             //file name with two dots
-            expectResult("123456.jpg") { Config.formatAttachmentFileName("picture.abc.jpg", "123456") }
+            expectResult("123456.jpg") { appConfig.formatAttachmentFileName("picture.abc.jpg", "123456") }
             //file name with empty extension
-            expectResult("123456.") { Config.formatAttachmentFileName("picture.", "123456") }
+            expectResult("123456.") { appConfig.formatAttachmentFileName("picture.", "123456") }
         }
     }
     test("lastRunOutputFile - when it is not defined storeLastModifiedDate() should not fail") {
         withFile { (file, writer) =>
-            Config.load(List("--config", file.getAbsolutePath))
+            appConfig.load(List("--config", file.getAbsolutePath))
             val storeLastModifiedDate = PrivateMethod[(String, String)]('storeLastModifiedDate)
             //next line must not fail with NPE or similar exception
-            Config invokePrivate storeLastModifiedDate("dummyObject__c", "some-date")
+            appConfig invokePrivate storeLastModifiedDate("dummyObject__c", "some-date")
 
         }
     }
     test("lastRunOutputFile - when it is not defined getStoredLastModifiedDate(objApiName) should return default value") {
         withFile { (file, writer) =>
-            Config.load(List("--config", file.getAbsolutePath))
+            appConfig.load(List("--config", file.getAbsolutePath))
             val getStoredLastModifiedDate = PrivateMethod[String]('getStoredLastModifiedDate)
-            val res = Config invokePrivate getStoredLastModifiedDate("dummyObject__c")
+            val res = appConfig invokePrivate getStoredLastModifiedDate("dummyObject__c")
             expectResult("1900-01-01T00:00:00Z") {res}
 
         }

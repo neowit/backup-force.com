@@ -23,6 +23,8 @@ import java.util.Properties
 import java.io.{FileWriter, File}
 
 class ConfigGenerator {
+    val appConfig = Config.getConfig
+
     //println(jarPath )
     println()
     println(
@@ -41,14 +43,14 @@ class ConfigGenerator {
                 val writer = new FileWriter(configPath)
                 config.store(writer, " backup-force.com configuration file \n see example of all possible properties at:\n https://github.com/neowit/backup-force.com/blob/master/config/sample-configuration.properties")
                 println("\nYou can now start the process using following command line: \n")
-                println("java -jar " + Config.jarPath + " --config " + new File(configPath).getAbsolutePath + "\n")
+                println("java -jar " + appConfig.jarPath + " --config " + new File(configPath).getAbsolutePath + "\n")
             }
-        case "2" => Config.help(); System.exit(0)
+        case "2" => appConfig.help(); System.exit(0)
         case _ => System.exit(0)
     }
 
     def requestFilePath() = {
-        val pathExample = if (Config.isUnix) "/home/user/myconf.properties" else "c:/extract/myconf.properties"
+        val pathExample = if (appConfig.isUnix) "/home/user/myconf.properties" else "c:/extract/myconf.properties"
         var fPath = ""
         while (null == fPath || fPath.isEmpty) {
             fPath = readLine( "Enter the full path and the name of the config file to be created. \nFor example: "+ pathExample + "\n" )

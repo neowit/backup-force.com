@@ -33,19 +33,20 @@ object BackupRunner {
     def isAcceptable(sobj: DescribeGlobalSObjectResult):Boolean ={
         sobj.isCreateable && sobj.isQueryable && !EXCLUDED_TYPES.contains(sobj.getName)
     }
+    val appConfig = Config.getConfig
 
     def main(args: Array[String]) {
         if (args.isEmpty) {
             new ConfigGenerator
         } else {
             try {
-                Config.load(args.toList)
+                appConfig.load(args.toList)
                 run()
             } catch {
-                case ex: InvalidCommandLineException => Config.help()
+                case ex: InvalidCommandLineException => appConfig.help()
                 case ex: MissingRequiredConfigParameterException => println(ex.getMessage)
             } finally {
-                Config.lastQueryPropsActor ! "exit"
+                appConfig.lastQueryPropsActor ! "exit"
             }
         }
     }
@@ -53,37 +54,37 @@ object BackupRunner {
     def run() {
 
         val config = new com.sforce.ws.ConnectorConfig()
-        config.setUsername(Config.username)
-        config.setPassword(Config.password)
+        config.setUsername(appConfig.username)
+        config.setPassword(appConfig.password)
 
-        val endpoint = Config.soapEndpoint
+        val endpoint = appConfig.soapEndpoint
         if (null != endpoint)
             config.setAuthEndpoint(endpoint)
 
         config.setCompression(true)
 
-        val proxyHost = Config.getProperty("http.proxyHost")
-        val proxyPort = Config.getProperty("http.proxyPort")
+        val proxyHost = appConfig.getProperty("http.proxyHost")
+        val proxyPort = appConfig.getProperty("http.proxyPort")
         if (None != proxyHost && None != proxyPort)
             config.setProxy(proxyHost.get, proxyPort.get.toInt)
 
-        val proxyUsername = Config.getProperty("http.proxyUsername")
+        val proxyUsername = appConfig.getProperty("http.proxyUsername")
         if (None != proxyUsername )
             config.setProxyUsername(proxyUsername.get)
 
-        val proxyPassword = Config.getProperty("http.proxyPassword")
+        val proxyPassword = appConfig.getProperty("http.proxyPassword")
         if (None != proxyPassword )
             config.setProxyPassword(proxyPassword.get)
 
-        val ntlmDomain = Config.getProperty("http.ntlmDomain")
+        val ntlmDomain = appConfig.getProperty("http.ntlmDomain")
         if (None != ntlmDomain )
             config.setNtlmDomain(ntlmDomain.get)
 
-        val connectionTimeoutSecs = Config.getProperty("http.connectionTimeoutSecs")
+        val connectionTimeoutSecs = appConfig.getProperty("http.connectionTimeoutSecs")
         if (None != connectionTimeoutSecs )
             config.setConnectionTimeout(connectionTimeoutSecs.get.toInt * 1000)
 
-        val readTimeoutSecs = Config.getProperty("http.readTimeoutSecs")
+        val readTimeoutSecs = appConfig.getProperty("http.readTimeoutSecs")
         if (None != readTimeoutSecs )
             config.setReadTimeout(readTimeoutSecs.get.toInt * 1000)
 
@@ -94,9 +95,9 @@ object BackupRunner {
         //println("SessionId: "+config.getSessionId)
 
         //list of objects that have custom SOQL query defined
-        val customSoqlObjects = Config.objectsWithCustomSoql
+        val customSoqlObjects = appConfig.objectsWithCustomSoql
 
-        val objListProperty = Config.backupObjects match {
+        val objListProperty = appConfig.backupObjects match {
             case Some("*") => Set("*")
             case Some(x) => x.replaceAll(" ", "").split(",").toSet[String]
             case None => Set()
@@ -112,9 +113,9 @@ object BackupRunner {
         require(!allSobjectSet.isEmpty, "config file contains no objects to backup")
         def runAllProcesses() {
             if (!allSobjectSet.isEmpty) {
-                Config.HookGlobalBefore.execute()
+                appConfig.HookGlobalBefore.execute()
             }
-            if (!Config.useBulkApi) {
+            if (!appConfig.useBulkApi) {
                 for (objApiName <- allSobjectSet) {
                     val backuper = new BackupSObject(connection, objApiName)
                     backuper.run()
@@ -137,10 +138,10 @@ object BackupRunner {
                 Await.result(Future.sequence(futureList), Duration.Inf)
             }
             if (!allSobjectSet.isEmpty) {
-                Config.HookGlobalAfter.execute()
+                appConfig.HookGlobalAfter.execute()
             }
         }
-        Benchmark("useBulkApi = " + Config.useBulkApi) {
+        Benchmark("useBulkApi = " + appConfig.useBulkApi) {
             runAllProcesses()
         }
 

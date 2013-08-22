@@ -40,15 +40,16 @@ class BatchProcessingException(msg:String, code: AsyncExceptionCode) extends Asy
 }
 class BackupSObject(connection:PartnerConnection, objectApiName:String ) {
 
+    val appConfig = Config.getConfig
 
     def run(): Future[(OperationMode, Boolean)] = {
-        require(null != Config.outputFolder, "config file missing 'outputFolder' value")
+        require(null != appConfig.outputFolder, "config file missing 'outputFolder' value")
         val describeRes = connection.describeSObject(objectApiName)
         val allFields = describeRes.getFields
 
-        val outputFilePath = Config.outputFolder + File.separator + objectApiName + ".csv"
+        val outputFilePath = appConfig.outputFolder + File.separator + objectApiName + ".csv"
 
-        val configSoql = Config.getProperty("backup.soql." + objectApiName)
+        val configSoql = appConfig.getProperty("backup.soql." + objectApiName)
 
         val modes = List(AsyncWithGlobalWhere, AsyncWithoutGlobalWhere, SyncWithGlobalWhere, SyncWithoutGlobalWhere)
                         .filter(m => m.isApplicable(objectApiName))
@@ -65,7 +66,7 @@ class BackupSObject(connection:PartnerConnection, objectApiName:String ) {
                 if (None != configSoql)
                     configSoql.get
                 else
-                    "select * from " + objectApiName + {if (currentMode.allowGlobalWhere) " where " + Config.globalWhere.get else ""}
+                    "select * from " + objectApiName + {if (currentMode.allowGlobalWhere) " where " + appConfig.globalWhere.get else ""}
 
 
             val soqlParser = new SOQLParser(soql)
@@ -101,8 +102,8 @@ class BackupSObject(connection:PartnerConnection, objectApiName:String ) {
                     println(objectApiName + ": " + size + " " + {if (currentMode.isAsync) "bytes" else "lines"})
                     result = (currentMode, true)
                     //store date/time in lastQuery.properties
-                    //Config.storeLastModifiedDate(objectApiName, ZuluTime.format(timeStampCal.getTime))
-                    Config.lastQueryPropsActor ! ("store", objectApiName, ZuluTime.format(timeStampCal.getTime))
+                    //appConfig.storeLastModifiedDate(objectApiName, ZuluTime.format(timeStampCal.getTime))
+                    appConfig.lastQueryPropsActor ! ("store", objectApiName, ZuluTime.format(timeStampCal.getTime))
 
                 } catch {
                     case ex: InvalidFieldFault => println(ex); if (currentMode.allowGlobalWhere) println("Will try once again without global.where")
@@ -152,7 +153,7 @@ class BackupSObject(connection:PartnerConnection, objectApiName:String ) {
         }
 
         //finally - run the process
-        if (Config.useBulkApi) {
+        if (appConfig.useBulkApi) {
             val f = future {
                 runOneMode(modes)
             }
@@ -167,7 +168,7 @@ class BackupSObject(connection:PartnerConnection, objectApiName:String ) {
 
     def onFileComplete(objectApiName: String, outputFilePath: String, size: Long) {
         if (size> 0) {
-            Config.HookEachAfter.execute(objectApiName, outputFilePath, size)
+            appConfig.HookEachAfter.execute(objectApiName, outputFilePath, size)
         }
     }
 
