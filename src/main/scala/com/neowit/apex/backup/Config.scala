@@ -276,7 +276,11 @@ regardless of whether it is also specified in config file or not
 
     lazy val globalWhere = getProperty("backup.global.where")
 
-    lazy val useBulkApi = getProperty("sf.useBulkApi") match {
+    //sometimes we need to stop Bulk API usage and fall back to normal API
+    def stopBulkApi() {
+        mainProps.setProperty("sf.useBulkApi", "false")
+    }
+    def useBulkApi = getProperty("sf.useBulkApi") match {
       case Some("true") => true
       case _ => false
     }

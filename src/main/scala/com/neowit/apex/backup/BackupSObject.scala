@@ -110,7 +110,7 @@ class BackupSObject(connection:PartnerConnection, objectApiName:String ) {
                     case ex: ApiQueryFault =>
                         if (ex.getExceptionMessage.indexOf("Implementation restriction:") >=0) {
                             println("Warning: Object " + objectApiName +" can not be queried in batch mode due to Implementation restriction")
-                            println(ex.getExceptionMessage)
+                            println("\t" + ex.getExceptionMessage)
                         } else {
                             //all other ApiQueryFault related problems
                             println("Object " + objectApiName +" retrieve failed")
@@ -118,14 +118,20 @@ class BackupSObject(connection:PartnerConnection, objectApiName:String ) {
                         }
                     case ex: BatchProcessingException => println(ex.getExceptionMessage)
                     case ex: AsyncApiException =>
-                        if (AsyncExceptionCode.InvalidEntity == ex.getExceptionCode) {
-                            //exceptionMessage='Entity 'xxx' is not supported by the Bulk API.'
-                            println("Warning: Object " + objectApiName +" can not be queried in Bulk API mode ")
-                            println(ex.getExceptionMessage)
-                        } else {
-                            println("Object " + objectApiName +" - Bulk API retrieve failed.")
-                            println(ex)
-                            println(ex.getStackTraceString)
+                        ex.getExceptionCode match {
+                            case AsyncExceptionCode.InvalidEntity =>
+                                //exceptionMessage='Entity 'xxx' is not supported by the Bulk API.'
+                                println("Warning: Object " + objectApiName +" can not be queried in Bulk API mode ")
+                                println("\t" + ex)
+                            case AsyncExceptionCode.ExceededQuota =>
+                                println("Warning: Object " + objectApiName +" can not be queried in Bulk API mode ")
+                                println("\t" + ex)
+                                println("\tSwitching to standard Web Service API mode...\n")
+                                appConfig.stopBulkApi()
+                            case _ =>
+                                println("Object " + objectApiName +" - Bulk API retrieve failed.")
+                                println("\t" + ex)
+                                println(ex.getStackTraceString)
                         }
                     case ex: OutOfMemoryError =>
                         println("Error: Object " + objectApiName +" retrieve failed - OutOfMemoryError")
