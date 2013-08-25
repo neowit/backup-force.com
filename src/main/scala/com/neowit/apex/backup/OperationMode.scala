@@ -52,6 +52,13 @@ class FieldResolver (rec: SObject) {
         findFirst(record.getChildren)
     }
 
+    def hasField(name: String): Boolean = {
+        getFieldIgnoreCase(name) match {
+            case null => false
+            case x => true
+        }
+    }
+
     def getFieldIgnoreCase(name: String): Object = {
         getField(name, rec)
     }
@@ -89,12 +96,19 @@ sealed trait OperationMode {
     protected def processRecord(record: SObject) {
         //save attachment as file if "backup.attachment.asfile" is not null
         val FILE_OBJ_TYPES = Map("attachment" -> ("Name", "Body", ""), "document" -> ("DeveloperName", "Body", "Type"),
-            "contentversion" -> ("PathOnClient", "VersionData", ""))
-        val objectApiName = record.getType.toLowerCase
-        if ( FILE_OBJ_TYPES.contains(objectApiName)) {
-            val fileNameField = FILE_OBJ_TYPES(objectApiName)._1
-            val fileBodyField = FILE_OBJ_TYPES(objectApiName)._2
-            val fileExtensionField = FILE_OBJ_TYPES(objectApiName)._3
+                                 "contentversion" -> ("PathOnClient", "VersionData", ""),
+                                "*feed" -> ("ContentFileName", "ContentData", "")
+        )
+        val (fileNameField, fileBodyField, fileExtensionField) = FILE_OBJ_TYPES.get(record.getType.toLowerCase) match {
+            case Some((fNameFld, fBodyFld, fExtFld)) => (fNameFld, fBodyFld, fExtFld)
+            case _ => //check if this is a feed item
+                val (fNameFld, fBodyFld, fExtFld) = FILE_OBJ_TYPES("*feed")
+                if (record.hasField(fNameFld) && record.hasField(fBodyFld))
+                    (fNameFld, fBodyFld, fExtFld)
+                else
+                    (null, null, null)
+        }
+        if ( null != fileNameField && null != fileBodyField) {
 
             val fileName = appConfig.formatAttachmentFileName(record.getField(fileNameField), record.getId, record.getField(fileExtensionField))
 

@@ -136,7 +136,7 @@ class BackupSObject(connection:PartnerConnection, objectApiName:String ) {
                     case ex: OutOfMemoryError =>
                         println("Error: Object " + objectApiName +" retrieve failed - OutOfMemoryError")
                         println("\tSometimes this error can be avoided by changing java command line parameters")
-                        println("\tFor example, to allow java machine to use 1024MB RAM change your command line like so")
+                        println("\tFor example, to allow java machine to use 1024MB RAM add -Xmx parameter to your command line like so:")
                         println("\tjava -Xmx1024m -jar …\n")
 
                         println(ex)
