@@ -1,7 +1,7 @@
 # backup-force.com
 
 The backup-force.com is a command line tool for automated backups as well as configurable data retrieval from salesforce.
-It uses Force.com Web Services/SOAP API.  
+It uses Force.com Web Services/SOAP API and/or Bulk API.  
 Amongst other things this tool overcomes a well known shortcoming of Apex DataLoader - with backup-force.com you can automate incremental data retrieval for Objects that support LastModifiedDate.  
 Data is retrieved in .csv format.  
   
