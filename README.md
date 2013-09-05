@@ -60,11 +60,11 @@ Note: on systems that do not have Unix [date](http://en.wikipedia.org/wiki/Date_
 	- before/after each object type  
 Using hooks you can specify custom scripts to archive retrieved .csv files, write custom log events, validate results, etc. See ./config/sample-configuration.properties
 
-
 ## Limitations
 
-Current version will report `java.lang.OutOfMemoryError` (same as Apex DataLoader) on large files. In some cases this can be mitigated by increasing java heap size, e.g. to make it 1024MB use `java -Xmx1024m -jar …`. However it may still fail on retrieval of Chatter/Content/Files (ContentVersion object) when they are tens of megabytes in size.  
-Present workaround (if your Org has very large files 20MB+ and the above trick with `-Xmx` parameter does not work) is to limit the the file size in a config query, e.g.  
+Current version will report `java.lang.OutOfMemoryError` (same as Apex DataLoader) on large files. In some cases this can be mitigated by increasing java heap size, e.g. to make it 2048MB (assuming your computer has enough RAM) use `java -Xmx2048m -jar …`.  
+However it may still fail on retrieval of Chatter/Content/Files (ContentVersion object) when they are tens of megabytes in size.  
+Present workaround (if your Org has very large files 20MB+ and the above trick with `-Xmx` parameter does not work if your machine does not have enough RAM) is to limit the the file size in a config query, e.g.  
 `backup.soql.ContentVersion=select * from ContentVersion where ContentSize < 20000000`  
 
  
@@ -80,4 +80,7 @@ Copyright (c) 2013, Andrey Gavrikov. All rights reserved.
 License: LGPL v3 <http://www.gnu.org/licenses/>
 
 Third-Party Licenses:  
-* [Force.com Web Service Connector (WSC)](https://github.com/forcedotcom/wsc) - see [LICENSE.md](https://github.com/forcedotcom/wsc/blob/master/LICENSE.md)
+* [Force.com Web Service Connector (WSC)](https://github.com/forcedotcom/wsc) - see [LICENSE.md](https://github.com/forcedotcom/wsc/blob/master/LICENSE.md)  
+* [scalalogging](https://github.com/typesafehub/scalalogging) - [Apache 2.0 License](https://github.com/typesafehub/scalalogging#license)  
+* [slf4j](http://www.slf4j.org/) - [MIT license](http://www.slf4j.org/license.html)  
+* [Logback](http://logback.qos.ch/) - dual-licensed under the [EPL v1.0 and the LGPL 2.1](http://logback.qos.ch/license.html)  
