@@ -27,6 +27,7 @@ import java.io.File
 import scala.concurrent._
 import scala.concurrent.ExecutionContext.Implicits.global
 import com.sforce.ws.ConnectionException
+import com.typesafe.scalalogging.slf4j.Logging
 
 object ZuluTime {
     val zulu = new java.text.SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'")
@@ -38,7 +39,7 @@ object ZuluTime {
 class BatchProcessingException(msg:String, code: AsyncExceptionCode) extends AsyncApiException(msg: String, code: AsyncExceptionCode ) {
     def this(msg: String) = this(msg, AsyncExceptionCode.InvalidBatch)
 }
-class BackupSObject(connection:PartnerConnection, objectApiName:String ) {
+class BackupSObject(connection:PartnerConnection, objectApiName:String ) extends Logging {
 
     val appConfig = Config.getConfig
 
@@ -95,60 +96,60 @@ class BackupSObject(connection:PartnerConnection, objectApiName:String ) {
                     //get current server time, i.e. time at the time when query started
                     val timeStampCal = connection.getServerTimestamp.getTimestamp
 
-                    println(objectApiName + ": Trying mode: " + currentMode)
+                    logger.info(objectApiName + ": Trying mode: " + currentMode)
                     val size = currentMode.load(connection, objectApiName, soqlParser, queryString, fieldList, outputFilePath)
 
                     onFileComplete(objectApiName, outputFilePath, size)
-                    println(objectApiName + ": " + size + " " + {if (currentMode.isAsync) "bytes" else "lines"})
+                    logger.info(objectApiName + ": " + size + " " + {if (currentMode.isAsync) "bytes" else "lines"})
                     result = (currentMode, true)
                     //store date/time in lastQuery.properties
                     appConfig.storeLastModifiedDate(objectApiName, ZuluTime.format(timeStampCal.getTime))
                     //appConfig.lastQueryPropsActor ! ("store", objectApiName, ZuluTime.format(timeStampCal.getTime))
 
                 } catch {
-                    case ex: InvalidFieldFault => println(ex); if (currentMode.allowGlobalWhere) println("Will try once again without global.where")
+                    case ex: InvalidFieldFault => logger.warn("" + ex); if (currentMode.allowGlobalWhere) logger.warn("Will try once again without global.where")
                     case ex: ApiQueryFault =>
                         if (ex.getExceptionMessage.indexOf("Implementation restriction:") >=0) {
-                            println("Warning: Object " + objectApiName +" can not be queried in batch mode due to Implementation restriction")
-                            println("\t" + ex.getExceptionMessage)
+                            logger.warn("Warning: Object " + objectApiName +" can not be queried in batch mode due to Implementation restriction")
+                            logger.warn("\t" + ex.getExceptionMessage)
                         } else {
                             //all other ApiQueryFault related problems
-                            println("Object " + objectApiName +" retrieve failed")
-                            println(ex)
+                            logger.error("Object " + objectApiName +" retrieve failed")
+                            logger.error("" + ex)
                         }
-                    case ex: BatchProcessingException => println(ex.getExceptionMessage)
+                    case ex: BatchProcessingException => logger.error(ex.getExceptionMessage)
                     case ex: AsyncApiException =>
                         ex.getExceptionCode match {
                             case AsyncExceptionCode.InvalidEntity =>
                                 //exceptionMessage='Entity 'xxx' is not supported by the Bulk API.'
-                                println("Warning: Object " + objectApiName +" can not be queried in Bulk API mode ")
-                                println("\t" + ex)
+                                logger.warn("Warning: Object " + objectApiName +" can not be queried in Bulk API mode ")
+                                logger.warn("\t" + ex)
                             case AsyncExceptionCode.ExceededQuota =>
-                                println("Warning: Object " + objectApiName +" can not be queried in Bulk API mode ")
-                                println("\t" + ex)
-                                println("\tSwitching to standard Web Service API mode...\n")
+                                logger.warn("Warning: Object " + objectApiName +" can not be queried in Bulk API mode ")
+                                logger.warn("\t" + ex)
+                                logger.warn("\tSwitching to standard Web Service API mode...\n")
                                 appConfig.stopBulkApi()
                             case _ =>
-                                println("Object " + objectApiName +" - Bulk API retrieve failed.")
-                                println("\t" + ex)
-                                println(ex.getStackTraceString)
+                                logger.error("Object " + objectApiName +" - Bulk API retrieve failed.")
+                                logger.error("\t" + ex)
+                                logger.error(ex.getStackTraceString)
                         }
                     case ex: OutOfMemoryError =>
-                        println("Error: Object " + objectApiName +" retrieve failed - OutOfMemoryError")
-                        println("\tSometimes this error can be avoided by changing java command line parameters")
-                        println("\tFor example, to allow java machine to use 1024MB RAM add -Xmx parameter to your command line like so:")
-                        println("\tjava -Xmx1024m -jar …\n")
+                        logger.error("Error: Object " + objectApiName +" retrieve failed - OutOfMemoryError")
+                        logger.error("\tSometimes this error can be avoided by changing java command line parameters")
+                        logger.error("\tFor example, to allow java machine to use 1024MB RAM add -Xmx parameter to your command line like so:")
+                        logger.error("\tjava -Xmx1024m -jar …\n")
 
-                        println(ex)
-                        println(ex.getStackTraceString)
+                        logger.error("" + ex)
+                        logger.error(ex.getStackTraceString)
 
                     case ex: Throwable =>
-                        println("Object " + objectApiName +" retrieve failed")
+                        logger.error("Object " + objectApiName +" retrieve failed")
                         if (ex.isInstanceOf[ConnectionException] && ex.getMessage.indexOf("Failed to send request to") >=0) {
-                            println("Error: Communication problem. Try to increase value of 'http.connectionTimeoutSecs' and/or 'http.readTimeoutSecs' configuration parameters.\n")
+                            logger.error("Error: Communication problem. Try to increase value of 'http.connectionTimeoutSecs' and/or 'http.readTimeoutSecs' configuration parameters.\n")
                         }
-                        println(ex)
-                        println(ex.getStackTraceString)
+                        logger.error("" + ex)
+                        logger.error(ex.getStackTraceString)
                 }
             }
 

@@ -26,6 +26,7 @@ import scala.sys.process._
 import scala.collection.mutable.ListBuffer
 import scala.util.matching.Regex
 import scala.concurrent._
+import com.typesafe.scalalogging.slf4j.Logging
 
 class InvalidCommandLineException(msg: String)  extends IllegalArgumentException(msg: String) {
     def this() {
@@ -50,7 +51,7 @@ trait PropertiesOption extends Properties{
     }
 }
 
-object Config {
+object Config extends Logging {
     private var config: Config = new Config
     def getConfig = {
         config
@@ -60,7 +61,7 @@ object Config {
         config = new Config
     }
 }
-class Config {
+class Config extends Logging {
     def isUnix = {
         val os = System.getProperty("os.name").toLowerCase
         os.contains("nux") || os.contains("mac")
@@ -101,11 +102,10 @@ class Config {
             }
         }
 
-        //args.foreach(arg => println(arg))
         val (configFilePaths:List[String], opts) = nextOption(ListBuffer[String](), Map(), arglist)
         options = opts
         isValidCommandLine = true
-        //println(options)
+        //logger.debug(options)
         //merge config files
         require(!configFilePaths.isEmpty, "missing --config parameter")
         for (confPath <- configFilePaths) {
@@ -302,10 +302,10 @@ regardless of whether it is also specified in config file or not
                         str.replaceAll("\\$name", Regex.quoteReplacement(name)).replaceAll("\\$id", Regex.quoteReplacement(objId)).replaceAll("\\$ext", Regex.quoteReplacement(ext))
                     } catch {
                         case ex: Throwable =>
-                        println("ERROR, failed to apply file name replacements")
-                        println("str=" + str)
-                        println("name=" + name + "; id=" + objId + "; ext=" + ext)
-                        println(ex)
+                            logger.error("ERROR, failed to apply file name replacements")
+                            logger.error("str=" + str)
+                            logger.error("name=" + name + "; id=" + objId + "; ext=" + ext)
+                            logger.error("" + ex)
                         null
                     }
                     res

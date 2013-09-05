@@ -23,7 +23,9 @@ import com.sforce.soap.partner.DescribeGlobalSObjectResult
 import scala.concurrent.{Future, Await}
 import scala.concurrent.duration.Duration
 
-object BackupRunner {
+import com.typesafe.scalalogging.slf4j.Logging
+
+object BackupRunner extends Logging {
 
     type OptionMap = Map[String, Any]
 
@@ -44,7 +46,7 @@ object BackupRunner {
                 run()
             } catch {
                 case ex: InvalidCommandLineException => appConfig.help()
-                case ex: MissingRequiredConfigParameterException => println(ex.getMessage)
+                case ex: MissingRequiredConfigParameterException => logger.error(ex.getMessage)
             } finally {
                 //appConfig.lastQueryPropsActor ! "exit"
             }
@@ -89,10 +91,10 @@ object BackupRunner {
             config.setReadTimeout(readTimeoutSecs.get.toInt * 1000)
 
         val connection = com.sforce.soap.partner.Connector.newConnection(config)
-        println("Auth EndPoint: "+config.getAuthEndpoint)
-        println("Service EndPoint: "+config.getServiceEndpoint)
-        println("Username: "+config.getUsername)
-        //println("SessionId: "+config.getSessionId)
+        logger.info("Auth EndPoint: "+config.getAuthEndpoint)
+        logger.info("Service EndPoint: "+config.getServiceEndpoint)
+        logger.info("Username: "+config.getUsername)
+        //logger.info("SessionId: "+config.getSessionId)
 
         //list of objects that have custom SOQL query defined
         val customSoqlObjects = appConfig.objectsWithCustomSoql

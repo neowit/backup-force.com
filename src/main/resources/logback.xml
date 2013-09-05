@@ -1,0 +1,23 @@
+<configuration>
+	<!-- 
+		this is default logback configuration which does not do much
+		write your own config and pass it to java with with a system property named "logback.configurationFile"
+		e.g.:
+			java -Dlogback.configurationFile=/path/to/config.xml -jar ...
+
+		see config documentation here:
+		http://logback.qos.ch/manual/configuration.html
+	-->
+
+	<appender name="STDOUT" class="ch.qos.logback.core.ConsoleAppender">
+		<!-- encoders are assigned the type
+		 ch.qos.logback.classic.encoder.PatternLayoutEncoder by default -->
+		<encoder>
+			<pattern>%d{HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n</pattern>
+		</encoder>
+	</appender>
+
+<root level="debug">
+	<appender-ref ref="STDOUT" />
+</root>
+</configuration>

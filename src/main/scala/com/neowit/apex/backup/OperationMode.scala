@@ -27,6 +27,7 @@ import com.sforce.async._
 import com.sforce.ws.bind.XmlObject
 import scala.annotation.tailrec
 import scala.collection.JavaConversions._
+import com.typesafe.scalalogging.slf4j.Logging
 
 /**
  * this class serves two purposes
@@ -77,7 +78,7 @@ class FieldResolver (rec: SObject) {
     }
 }
 
-sealed trait OperationMode {
+sealed trait OperationMode extends Logging {
     //provide conversion of SObject to FieldResolver
     implicit def toFieldResolver(record: SObject) = new FieldResolver(record)
     val appConfig = Config.getConfig
@@ -127,8 +128,8 @@ sealed trait OperationMode {
                         output.close()
                     } catch {
                         case ex: FileNotFoundException =>
-                            println("Error: Unable to save file: '" + fileName + "'\n using path: " + file.getAbsolutePath)
-                            println(ex.getMessage)
+                            logger.error("Error: Unable to save file: '" + fileName + "'\n using path: " + file.getAbsolutePath)
+                            logger.error(ex.getMessage)
                     }
                 }
             }
@@ -178,7 +179,7 @@ class AsyncMode extends OperationMode {
                     keepWaiting = false
                 case BatchStateEnum.Failed =>
                     keepWaiting = false
-                    //println(info.getStateMessage)
+                    //logger.debug(info.getStateMessage)
                     closeJob(bulkConnection, info.getJobId)
                     throw new BatchProcessingException("Warning: Bulk API call ["+ this.toString +"] for " + objectApiName +
                                                         " was unsuccessful. Will try another method...\n::Original error description:\n\t" +
@@ -192,7 +193,7 @@ class AsyncMode extends OperationMode {
                 val input = bulkConnection.getQueryResultStream(job.getId, info.getId, resultId)
                 var writerNeedsClosing = false
                 lazy val output = {
-                    //println("about to start:  " + outputFilePath)
+                    //logger.debug("about to start:  " + outputFilePath)
                     //run user's before hook
                     appConfig.HookEachBefore.execute(objectApiName, outputFilePath)
                     writerNeedsClosing = true
@@ -228,9 +229,9 @@ class AsyncMode extends OperationMode {
             closeJob(bulkConnection, info.getJobId)
         } catch {
             case ex: Throwable =>
-                println("failed to close job " + objectApiName)
-                println(ex)
-                println(ex.getStackTraceString)
+                logger.error("failed to close job " + objectApiName)
+                logger.error("" + ex)
+                logger.error(ex.getStackTraceString)
         }
         size
 
@@ -265,7 +266,7 @@ abstract class SyncMode extends OperationMode {
 
         var writerNeedsClosing = false
         lazy val csvWriter = {
-            //println("about to start:  " + outputFilePath)
+            //logger.debug("about to start:  " + outputFilePath)
             appConfig.HookEachBefore.execute(objectApiName, outputFilePath)
             val file = new File(outputFilePath)
             file.createNewFile()
@@ -282,7 +283,7 @@ abstract class SyncMode extends OperationMode {
             var doExit = false
             do {
                 for (record <- queryResults.getRecords) {
-                    //println("Id: " + record.getId + "; Name=" + record.getField("Name"))
+                    //logger.debug("Id: " + record.getId + "; Name=" + record.getField("Name"))
                     val values = fieldList.map(fName => (record.getFieldIgnoreCase(fName) match {
                         case null => ""
                         case x => x
@@ -299,7 +300,7 @@ abstract class SyncMode extends OperationMode {
         if (writerNeedsClosing) {
             csvWriter.endDocument()
         }
-        //println(objectApiName + ": " + size)
+        //logger.debug(objectApiName + ": " + size)
         size
     }
 }
