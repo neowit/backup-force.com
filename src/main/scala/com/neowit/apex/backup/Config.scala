@@ -24,8 +24,8 @@ import java.util.Properties
 import java.io.{FileWriter, File}
 import scala.sys.process._
 import scala.collection.mutable.ListBuffer
-import akka.actor._
 import scala.util.matching.Regex
+import scala.concurrent._
 
 class InvalidCommandLineException(msg: String)  extends IllegalArgumentException(msg: String) {
     def this() {
@@ -58,22 +58,6 @@ object Config {
     def resetConfig = {
         //used in unit tests
         config = new Config
-    }
-
-    class LastQueryPropsActor() extends Actor with ActorLogging {
-        lazy val appConfig: Config = Config.getConfig
-
-        override def preStart(): Unit = {
-            //load properties
-        }
-        def receive = {
-            case ("get", objectApiName:String) => sender ! appConfig.getStoredLastModifiedDate(objectApiName)
-            //log.info("Received get: " + objectApiName)
-            case ("store", objectApiName:String, formattedDateTime:String) => appConfig.storeLastModifiedDate(objectApiName, formattedDateTime); sender ! ""
-            //log.info("Received store: " + objectApiName + "; " + formattedDateTime)
-            case "exit" => context.stop(self); appConfig.actorSystem.shutdown(); log.info("Received exit")
-            case _ => throw new IllegalArgumentException("Unsupported message")
-        }
     }
 }
 class Config {
@@ -284,6 +268,9 @@ regardless of whether it is also specified in config file or not
       case Some("true") => true
       case _ => false
     }
+    //an alternative to the above is a somewhat shorter one-liner
+    //import PartialFunction._
+    //def useBulkApi = cond(getProperty("sf.useBulkApi")) { case Some("true") => true }
 
     private def attachmentNameTemplate = getProperty("backup.extract.file")
     lazy val hasAttachmentNameTemplate = attachmentNameTemplate match {
@@ -328,25 +315,26 @@ regardless of whether it is also specified in config file or not
         }
     }
 
-    private def storeLastModifiedDate(objectApiName: String, formattedDateTime: String) {
-
-        if (null != lastQueryProps) {
-            lastQueryProps.setProperty(objectApiName.toLowerCase, formattedDateTime)
-            val writer = new FileWriter(lastQueryPropsFile.get)
-            lastQueryProps.store(writer, "time stamps when last queried each object")
+    def storeLastModifiedDate(objectApiName: String, formattedDateTime: String) {
+        blocking {
+            if (null != lastQueryProps) {
+                lastQueryProps.setProperty(objectApiName.toLowerCase, formattedDateTime)
+                val writer = new FileWriter(lastQueryPropsFile.get)
+                lastQueryProps.store(writer, "time stamps when last queried each object")
+            }
         }
     }
 
-    private def getStoredLastModifiedDate(objectApiName: String): String = {
-        val storedDateStr = if (null != lastQueryProps) lastQueryProps.getProperty(objectApiName.toLowerCase) else null
-        if (null != storedDateStr)
-            storedDateStr
-        else
-            "1900-01-01T00:00:00Z"
+    def getStoredLastModifiedDate(objectApiName: String): String = {
+        blocking {
+            val storedDateStr = if (null != lastQueryProps) lastQueryProps.getProperty(objectApiName.toLowerCase) else null
+            if (null != storedDateStr)
+                storedDateStr
+            else
+                "1900-01-01T00:00:00Z"
+        }
     }
 
-    private val actorSystem = ActorSystem("ConfigSystem")
-    lazy val lastQueryPropsActor = actorSystem.actorOf(Props[Config.LastQueryPropsActor])
     /*
      * generates specified folders nested in the main outputFolder
      */

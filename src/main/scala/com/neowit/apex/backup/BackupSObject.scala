@@ -102,8 +102,8 @@ class BackupSObject(connection:PartnerConnection, objectApiName:String ) {
                     println(objectApiName + ": " + size + " " + {if (currentMode.isAsync) "bytes" else "lines"})
                     result = (currentMode, true)
                     //store date/time in lastQuery.properties
-                    //appConfig.storeLastModifiedDate(objectApiName, ZuluTime.format(timeStampCal.getTime))
-                    appConfig.lastQueryPropsActor ! ("store", objectApiName, ZuluTime.format(timeStampCal.getTime))
+                    appConfig.storeLastModifiedDate(objectApiName, ZuluTime.format(timeStampCal.getTime))
+                    //appConfig.lastQueryPropsActor ! ("store", objectApiName, ZuluTime.format(timeStampCal.getTime))
 
                 } catch {
                     case ex: InvalidFieldFault => println(ex); if (currentMode.allowGlobalWhere) println("Will try once again without global.where")

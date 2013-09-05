@@ -46,7 +46,7 @@ object BackupRunner {
                 case ex: InvalidCommandLineException => appConfig.help()
                 case ex: MissingRequiredConfigParameterException => println(ex.getMessage)
             } finally {
-                appConfig.lastQueryPropsActor ! "exit"
+                //appConfig.lastQueryPropsActor ! "exit"
             }
         }
     }
