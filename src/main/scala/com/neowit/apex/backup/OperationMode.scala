@@ -181,7 +181,7 @@ class AsyncMode extends OperationMode {
                     keepWaiting = false
                     //logger.debug(info.getStateMessage)
                     closeJob(bulkConnection, info.getJobId)
-                    throw new BatchProcessingException("Warning: Bulk API call ["+ this.toString +"] for " + objectApiName +
+                    throw new BatchProcessingException("Bulk API call ["+ this.toString +"] for " + objectApiName +
                                                         " was unsuccessful. Will try another method...\n::Original error description:\n\t" +
                                                         info.getStateMessage + "\n")
                 case _ => //in progress
@@ -280,6 +280,9 @@ abstract class SyncMode extends OperationMode {
             connection.query(query)
         val size = queryResults.getSize
         if (size > 0) {
+            val debugThreshold = 60 * 1000 //show current number of processed record every 60 seconds
+            var start = System.currentTimeMillis
+            var recCount = 0;
             var doExit = false
             do {
                 for (record <- queryResults.getRecords) {
@@ -290,6 +293,11 @@ abstract class SyncMode extends OperationMode {
                     }).toString).toArray
                     csvWriter.writeRecord(values)
                     processRecord(record)
+                    recCount = recCount +1
+                    if (System.currentTimeMillis - start > debugThreshold ) {
+                        logger.debug(objectApiName + ": processed " + recCount + " records. Last processed record Id=" + record.getId)
+                        start = System.currentTimeMillis
+                    }
                 }
                 doExit = queryResults.isDone
                 if (!doExit ){

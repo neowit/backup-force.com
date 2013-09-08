@@ -110,22 +110,22 @@ class BackupSObject(connection:PartnerConnection, objectApiName:String ) extends
                     case ex: InvalidFieldFault => logger.warn("" + ex); if (currentMode.allowGlobalWhere) logger.warn("Will try once again without global.where")
                     case ex: ApiQueryFault =>
                         if (ex.getExceptionMessage.indexOf("Implementation restriction:") >=0) {
-                            logger.warn("Warning: Object " + objectApiName +" can not be queried in batch mode due to Implementation restriction")
+                            logger.warn("Object " + objectApiName +" can not be queried in batch mode due to Implementation restriction")
                             logger.warn("\t" + ex.getExceptionMessage)
                         } else {
                             //all other ApiQueryFault related problems
                             logger.error("Object " + objectApiName +" retrieve failed")
                             logger.error("" + ex)
                         }
-                    case ex: BatchProcessingException => logger.error(ex.getExceptionMessage)
+                    case ex: BatchProcessingException => logger.warn(ex.getExceptionMessage)
                     case ex: AsyncApiException =>
                         ex.getExceptionCode match {
                             case AsyncExceptionCode.InvalidEntity =>
                                 //exceptionMessage='Entity 'xxx' is not supported by the Bulk API.'
-                                logger.warn("Warning: Object " + objectApiName +" can not be queried in Bulk API mode ")
+                                logger.warn("Object " + objectApiName +" can not be queried in Bulk API mode ")
                                 logger.warn("\t" + ex)
                             case AsyncExceptionCode.ExceededQuota =>
-                                logger.warn("Warning: Object " + objectApiName +" can not be queried in Bulk API mode ")
+                                logger.warn("Object " + objectApiName +" can not be queried in Bulk API mode ")
                                 logger.warn("\t" + ex)
                                 logger.warn("\tSwitching to standard Web Service API mode...\n")
                                 appConfig.stopBulkApi()
@@ -135,7 +135,7 @@ class BackupSObject(connection:PartnerConnection, objectApiName:String ) extends
                                 logger.error(ex.getStackTraceString)
                         }
                     case ex: OutOfMemoryError =>
-                        logger.error("Error: Object " + objectApiName +" retrieve failed - OutOfMemoryError")
+                        logger.error("Object " + objectApiName +" retrieve failed - OutOfMemoryError")
                         logger.error("\tSometimes this error can be avoided by changing java command line parameters")
                         logger.error("\tFor example, to allow java machine to use 1024MB RAM add -Xmx parameter to your command line like so:")
                         logger.error("\tjava -Xmx1024m -jar …\n")
@@ -146,7 +146,7 @@ class BackupSObject(connection:PartnerConnection, objectApiName:String ) extends
                     case ex: Throwable =>
                         logger.error("Object " + objectApiName +" retrieve failed")
                         if (ex.isInstanceOf[ConnectionException] && ex.getMessage.indexOf("Failed to send request to") >=0) {
-                            logger.error("Error: Communication problem. Try to increase value of 'http.connectionTimeoutSecs' and/or 'http.readTimeoutSecs' configuration parameters.\n")
+                            logger.error("Communication problem. Try to increase value of 'http.connectionTimeoutSecs' and/or 'http.readTimeoutSecs' configuration parameters.\n")
                         }
                         logger.error("" + ex)
                         logger.error(ex.getStackTraceString)
