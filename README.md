@@ -9,7 +9,7 @@ Usage examples:
 * Backup all (or specific) data from all salesforce objects into .csv files  
 * Incremental Backup - backup data from all or specific objects modified since previous backup  
 * Extract data (full or incremental) from a list of all/specified objects and post-process each resulting .csv file using user defined scripts  
-See ./config/sample-configuration.properties file for further inspiration
+See [Wiki/Recipes](https://github.com/neowit/backup-force.com/wiki/Recipes) and  [./config/sample-configuration.properties](https://github.com/neowit/backup-force.com/blob/master/config/sample-configuration.properties) file for further inspiration.
 
 
 ## System requirements
