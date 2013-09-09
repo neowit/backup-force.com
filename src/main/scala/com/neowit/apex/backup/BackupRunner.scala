@@ -104,13 +104,14 @@ object BackupRunner extends Logging {
             case Some(x) => x.replaceAll(" ", "").split(",").toSet[String]
             case None => Set()
         }
+
         val mainSObjectsSet =
             if (Set("*") != objListProperty)
                 objListProperty
             else
                 connection.describeGlobal().getSobjects.filter(sobj => isAcceptable(sobj)).map(sobj => sobj.getName).toSet
 
-        val allSobjectSet = mainSObjectsSet ++ customSoqlObjects
+        val allSobjectSet = (mainSObjectsSet ++ customSoqlObjects).filterNot(objName => appConfig.backupObjectsExclude.contains(objName.toLowerCase))
 
         require(!allSobjectSet.isEmpty, "config file contains no objects to backup")
         def runAllProcesses() {
@@ -151,10 +152,3 @@ object BackupRunner extends Logging {
 
 }
 
-/*
-import scala.concurrent._
-import ExecutionContext.Implicits.global
-import scala.util.{Success, Failure}
-import scala.concurrent.duration.Duration
-
- */

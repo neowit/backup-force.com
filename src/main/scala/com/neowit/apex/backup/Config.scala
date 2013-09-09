@@ -212,6 +212,12 @@ regardless of whether it is also specified in config file or not
     }
     lazy val backupObjects = getProperty("backup.objects")
 
+    lazy val backupObjectsExclude:Set[String] = getProperty("backup.objects.exclude") match {
+        case Some("*") => logger.warn("Wildcard in 'backup.objects.exclude' parameter is not supported"); Set()
+        case Some(x) => x.replaceAll(" ", "").split(",").map(_.toLowerCase).toSet[String]
+        case None => Set()
+    }
+
     lazy val objectsWithCustomSoql = mainProps.stringPropertyNames().toArray.filter(propName => propName.toString.startsWith("backup.soql."))
         .map(propName => propName.toString.replace("backup.soql.", "")).toSet[String]
 

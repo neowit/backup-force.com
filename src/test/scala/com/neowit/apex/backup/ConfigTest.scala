@@ -236,4 +236,16 @@ class ConfigTest extends FunSuite with PrivateMethodTester {
 
         }
     }
+    test("backup.objects & backup.objects.exclude") {
+        withFile { (file, writer) =>
+            //template not provided
+            appConfig.load(List("--config", file.getAbsolutePath, "--backup.objects", "Account, Contact, Opportunity, Campaign"))
+            expectResult(Set()) { appConfig.backupObjectsExclude }
+            Config.resetConfig
+            val appConfig2 = Config.getConfig
+            appConfig2.load(List("--config", file.getAbsolutePath, "--backup.objects", "Account, Contact, Opportunity, Campaign", "--backup.objects.exclude" , "Opportunity, Contact" ))
+            expectResult(Set("opportunity", "contact" )) { appConfig2.backupObjectsExclude }
+
+        }
+    }
 }
