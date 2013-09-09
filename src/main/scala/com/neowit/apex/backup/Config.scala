@@ -357,17 +357,22 @@ regardless of whether it is also specified in config file or not
     }
 
     abstract class Hook () {
-        def scriptPath:Option[String]
+        def hookName: String
+        def scriptPath = getProperty("hook." + hookName)
+        def userProvidedScriptArgs:Seq[String] = getProperty("hook." + hookName + ".params") match {
+          case Some(s) => s.split(" ").toSeq
+          case None => Seq()
+        }
         def defaultArgs:Seq[String] = {
             val outputFolderStr = outputFolder
             lastRunOutputFile match {
-                case Some(lrof) => Seq(scriptPath.get, outputFolderStr, lrof)
-                case None => Seq(scriptPath.get, outputFolderStr, "")
+                case Some(lrof) => Seq(outputFolderStr, lrof)
+                case None => Seq(outputFolderStr, "")
             }
         }
 
         def execute(args: Seq[String] = Seq()):Int = scriptPath match{
-            case Some(path) => Process(path, defaultArgs ++ args).!
+            case Some(path) => Process(path, userProvidedScriptArgs ++ defaultArgs ++ args).!
             case None => 0
         }
     }
@@ -379,11 +384,11 @@ regardless of whether it is also specified in config file or not
      * - full path to lastRunOutputFile
      */
     object HookGlobalBefore extends Hook {
-        lazy val scriptPath = getProperty("hook.global.before")
+        lazy val hookName = "global.before"
     }
 
     object HookGlobalAfter extends Hook {
-        lazy val scriptPath = getProperty("hook.global.after")
+        lazy val hookName = "global.after"
     }
     /**
      * hook.each.before - script run before each Object process starts
@@ -394,7 +399,7 @@ regardless of whether it is also specified in config file or not
      * - full path to <objecttype>.csv which will be created
      */
     object HookEachBefore extends Hook {
-        lazy val scriptPath = getProperty("hook.each.before")
+        lazy val hookName = "each.before"
         def execute(objectApiName: String, outputCsvPath: String):Int = {
             execute(Seq(objectApiName, outputCsvPath))
         }
@@ -410,7 +415,7 @@ regardless of whether it is also specified in config file or not
      * - number of saved records
      */
     object HookEachAfter extends Hook {
-        lazy val scriptPath = getProperty("hook.each.after")
+        lazy val hookName = "each.after"
         def execute(objectApiName: String, outputCsvPath: String, numOfRecords: Long):Int = {
             execute(Seq(objectApiName, outputCsvPath, numOfRecords.toString))
         }
