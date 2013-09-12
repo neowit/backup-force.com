@@ -65,6 +65,13 @@
             <groupId>com.force.api</groupId>
             <artifactId>force-wsc</artifactId>
             <version>28.0.0</version>
+            <scope>compile</scope>
+            <exclusions>
+                <exclusion>
+                    <groupId>org.antlr</groupId>
+                    <artifactId>ST4</artifactId>
+                </exclusion>
+            </exclusions>
         </dependency>
         <dependency>
             <groupId>force</groupId>
