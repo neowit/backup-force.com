@@ -109,7 +109,7 @@ class BackupSObject(connection:PartnerConnection, objectApiName:String ) extends
                 } catch {
                     case ex: InvalidFieldFault => logger.warn("" + ex); if (currentMode.allowGlobalWhere) logger.warn("Will try once again without global.where")
                     case ex: ApiQueryFault =>
-                        if (ex.getExceptionMessage.indexOf("Implementation restriction:") >=0) {
+                        if (ex.getExceptionMessage.indexOf("Implementation restriction") >=0) {
                             logger.warn("Object " + objectApiName +" can not be queried in batch mode due to Implementation restriction")
                             logger.warn("\t" + ex.getExceptionMessage)
                         } else {
