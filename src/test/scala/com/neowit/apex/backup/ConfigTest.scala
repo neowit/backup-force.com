@@ -23,11 +23,10 @@ import org.scalatest.{FunSuite, PrivateMethodTester}
 import java.io.{File, FileWriter, FileNotFoundException}
 import scala.sys.process.Process
 import java.util.Properties
-import java.lang.IllegalArgumentException
 
 class ConfigTest extends FunSuite with PrivateMethodTester {
-    val appConfig = Config.getConfig
-    val isUnix = appConfig.isUnix
+    private val appConfig = Config.getConfig
+    private val isUnix = appConfig.isUnix
 
     val FAIL = false
     def withFile(testCode: (File, FileWriter) => Any) {
@@ -79,7 +78,7 @@ class ConfigTest extends FunSuite with PrivateMethodTester {
             props.store(writer, "")
 
             appConfig.load(List("--config", file.getAbsolutePath))
-            expectResult(None) { appConfig.getProperty("password")  }
+            assertResult(None) { appConfig.getProperty("password")  }
         }
     }
     test("Command Line - Key Without Value") {
@@ -99,7 +98,7 @@ class ConfigTest extends FunSuite with PrivateMethodTester {
             props.store(writer, "")
 
             appConfig.load(List("--config", file.getAbsolutePath, "--param1", "val2"))
-            expectResult(Option("val2")) { appConfig.getProperty("param1")  }
+            assertResult(Option("val2")) { appConfig.getProperty("param1")  }
         }
     }
     test("Parameter from second --config takes priority over first --config") {
@@ -113,7 +112,7 @@ class ConfigTest extends FunSuite with PrivateMethodTester {
                 props2.store(writer, "")
 
                 appConfig.load(List("--config", file.getAbsolutePath, "--config", f2.getAbsolutePath))
-                expectResult(Some("val2")) { appConfig.getProperty("sf.serverurl") }
+                assertResult(Some("val2")) { appConfig.getProperty("sf.serverurl") }
             }
 
         }
@@ -125,36 +124,36 @@ class ConfigTest extends FunSuite with PrivateMethodTester {
             props.store(writer, "")
 
             appConfig.load(List("--config", file.getAbsolutePath, "--config", file.getAbsolutePath, "--sf.serverurl", "val2"))
-            expectResult(Some("val2")) { appConfig.getProperty("sf.serverurl") }
+            assertResult(Some("val2")) { appConfig.getProperty("sf.serverurl") }
         }
     }
     test("ShellEvaluation") {
         if (isUnix) {
             val s1 = Option("nothing to evaluate")
-            expectResult(s1) { appConfig.evalShellCommands(s1) }
+            assertResult(s1) { appConfig.evalShellCommands(s1) }
             //assert(s1 == appConfig.evalShellCommands(s1))
 
             val s2 = Option("`broken string")
-            expectResult(s2) { appConfig.evalShellCommands(s2) }
+            assertResult(s2) { appConfig.evalShellCommands(s2) }
 
             val s3 = Option("`echo abcd`")
             assert(Option("abcd") == appConfig.evalShellCommands(s3))
 
             val s4 = Option("""`echo abcd`""")
-            expectResult(Option("abcd")) { appConfig.evalShellCommands(s4) }
+            assertResult(Option("abcd")) { appConfig.evalShellCommands(s4) }
 
             val s5 = Option("""some text`echo abcd`""")
-            expectResult(Option("some textabcd")) { appConfig.evalShellCommands(s5) }
+            assertResult(Option("some textabcd")) { appConfig.evalShellCommands(s5) }
 
             val s6 = Option("""text before`echo abcd`text after""")
-            expectResult(Option("text beforeabcdtext after")) { appConfig.evalShellCommands(s6) }
+            assertResult(Option("text beforeabcdtext after")) { appConfig.evalShellCommands(s6) }
 
             val s7 = Option("""text before`echo abcd`text after`echo efgh`""")
-            expectResult(Option("text beforeabcdtext afterefgh")) { appConfig.evalShellCommands(s7) }
+            assertResult(Option("text beforeabcdtext afterefgh")) { appConfig.evalShellCommands(s7) }
 
             val now = Process("date +%Y%m%d-%H%M").lines.head
             val s9 = Option("I:/SFDC-Exports/backup-force.com/extracts/`date +%Y%m%d-%H%M`")
-            expectResult(Option("I:/SFDC-Exports/backup-force.com/extracts/" + now)) { appConfig.evalShellCommands(s9) }
+            assertResult(Option("I:/SFDC-Exports/backup-force.com/extracts/" + now)) { appConfig.evalShellCommands(s9) }
         }
 
     }
@@ -166,7 +165,7 @@ class ConfigTest extends FunSuite with PrivateMethodTester {
 
         //template not provided
             appConfig.load(List("--config", file.getAbsolutePath, "--backup.extract.file", "" ))
-            expectResult(null) { appConfig.formatAttachmentFileName("picture.jpg", "123456") }
+            assertResult(null) { appConfig.formatAttachmentFileName("picture.jpg", "123456") }
 
         }
     }
@@ -177,23 +176,23 @@ class ConfigTest extends FunSuite with PrivateMethodTester {
 
             appConfig.load(List("--config", file.getAbsolutePath, "--backup.extract.file", """$id-$name$ext""" ))
             //no file name
-            expectResult(null) { appConfig.formatAttachmentFileName(null, "123456") }
+            assertResult(null) { appConfig.formatAttachmentFileName(null, "123456") }
             //blank file name
-            expectResult(null) { appConfig.formatAttachmentFileName("", "123457") }
+            assertResult(null) { appConfig.formatAttachmentFileName("", "123457") }
             //empty file name
-            expectResult(null) { appConfig.formatAttachmentFileName(" ", "123458") }
+            assertResult(null) { appConfig.formatAttachmentFileName(" ", "123458") }
             //file name without extension
-            expectResult("123456-picture") { appConfig.formatAttachmentFileName("picture", "123456") }
+            assertResult("123456-picture") { appConfig.formatAttachmentFileName("picture", "123456") }
             //file name with extension
-            expectResult("123456-picture.jpg") { appConfig.formatAttachmentFileName("picture.jpg", "123456") }
+            assertResult("123456-picture.jpg") { appConfig.formatAttachmentFileName("picture.jpg", "123456") }
             //file name with two dots
-            expectResult("123456-picture.abc.jpg") { appConfig.formatAttachmentFileName("picture.abc.jpg", "123456") }
+            assertResult("123456-picture.abc.jpg") { appConfig.formatAttachmentFileName("picture.abc.jpg", "123456") }
             //file name with empty extension
-            expectResult("123456-picture.") { appConfig.formatAttachmentFileName("picture.", "123456") }
+            assertResult("123456-picture.") { appConfig.formatAttachmentFileName("picture.", "123456") }
             //file name with provided extension
-            expectResult("123456-picture.doc") { appConfig.formatAttachmentFileName("picture.", "123456", "doc") }
-            expectResult("123456-picture.doc") { appConfig.formatAttachmentFileName("picture", "123456", "doc") }
-            expectResult("123456-Delivery_Action_Plan_v0_6.doc") { appConfig.formatAttachmentFileName("Delivery_Action_Plan_v0_6", "123456", "doc") }
+            assertResult("123456-picture.doc") { appConfig.formatAttachmentFileName("picture.", "123456", "doc") }
+            assertResult("123456-picture.doc") { appConfig.formatAttachmentFileName("picture", "123456", "doc") }
+            assertResult("123456-Delivery_Action_Plan_v0_6.doc") { appConfig.formatAttachmentFileName("Delivery_Action_Plan_v0_6", "123456", "doc") }
         }
     }
     test("File name expansion - with backup.extract.file parameter 2") {
@@ -203,19 +202,19 @@ class ConfigTest extends FunSuite with PrivateMethodTester {
 
             appConfig.load(List("--config", file.getAbsolutePath, "--backup.extract.file", """$id$ext""" ))
             //no file name
-            expectResult(null) { appConfig.formatAttachmentFileName(null, "123456") }
+            assertResult(null) { appConfig.formatAttachmentFileName(null, "123456") }
             //blank file name
-            expectResult(null) { appConfig.formatAttachmentFileName("", "123457") }
+            assertResult(null) { appConfig.formatAttachmentFileName("", "123457") }
             //empty file name
-            expectResult(null) { appConfig.formatAttachmentFileName(" ", "123458") }
+            assertResult(null) { appConfig.formatAttachmentFileName(" ", "123458") }
             //file name without extension
-            expectResult("123456") { appConfig.formatAttachmentFileName("picture", "123456") }
+            assertResult("123456") { appConfig.formatAttachmentFileName("picture", "123456") }
             //file name with extension
-            expectResult("123456.jpg") { appConfig.formatAttachmentFileName("picture.jpg", "123456") }
+            assertResult("123456.jpg") { appConfig.formatAttachmentFileName("picture.jpg", "123456") }
             //file name with two dots
-            expectResult("123456.jpg") { appConfig.formatAttachmentFileName("picture.abc.jpg", "123456") }
+            assertResult("123456.jpg") { appConfig.formatAttachmentFileName("picture.abc.jpg", "123456") }
             //file name with empty extension
-            expectResult("123456.") { appConfig.formatAttachmentFileName("picture.", "123456") }
+            assertResult("123456.") { appConfig.formatAttachmentFileName("picture.", "123456") }
         }
     }
     test("lastRunOutputFile - when it is not defined storeLastModifiedDate() should not fail") {
@@ -232,7 +231,7 @@ class ConfigTest extends FunSuite with PrivateMethodTester {
             appConfig.load(List("--config", file.getAbsolutePath))
             val getStoredLastModifiedDate = PrivateMethod[String]('getStoredLastModifiedDate)
             val res = appConfig invokePrivate getStoredLastModifiedDate("dummyObject__c")
-            expectResult("1900-01-01T00:00:00Z") {res}
+            assertResult("1900-01-01T00:00:00Z") {res}
 
         }
     }
@@ -240,11 +239,11 @@ class ConfigTest extends FunSuite with PrivateMethodTester {
         withFile { (file, writer) =>
             //template not provided
             appConfig.load(List("--config", file.getAbsolutePath, "--backup.objects", "Account, Contact, Opportunity, Campaign"))
-            expectResult(Set()) { appConfig.backupObjectsExclude }
+            assertResult(Set()) { appConfig.backupObjectsExclude }
             Config.resetConfig
             val appConfig2 = Config.getConfig
             appConfig2.load(List("--config", file.getAbsolutePath, "--backup.objects", "Account, Contact, Opportunity, Campaign", "--backup.objects.exclude" , "Opportunity, Contact" ))
-            expectResult(Set("opportunity", "contact" )) { appConfig2.backupObjectsExclude }
+            assertResult(Set("opportunity", "contact" )) { appConfig2.backupObjectsExclude }
 
         }
     }

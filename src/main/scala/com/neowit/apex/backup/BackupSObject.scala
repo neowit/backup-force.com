@@ -27,7 +27,7 @@ import java.io.File
 import scala.concurrent._
 import scala.concurrent.ExecutionContext.Implicits.global
 import com.sforce.ws.ConnectionException
-import com.typesafe.scalalogging.slf4j.Logging
+import com.typesafe.scalalogging.slf4j.LazyLogging
 
 object ZuluTime {
     val zulu = new java.text.SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'")
@@ -39,7 +39,7 @@ object ZuluTime {
 class BatchProcessingException(msg:String, code: AsyncExceptionCode) extends AsyncApiException(msg: String, code: AsyncExceptionCode ) {
     def this(msg: String) = this(msg, AsyncExceptionCode.InvalidBatch)
 }
-class BackupSObject(connection:PartnerConnection, objectApiName:String ) extends Logging {
+class BackupSObject(connection:PartnerConnection, objectApiName:String ) extends LazyLogging {
 
     private val appConfig = Config.getConfig
 

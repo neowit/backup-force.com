@@ -20,12 +20,13 @@
 package com.neowit.apex.backup
 
 import com.sforce.soap.partner.DescribeGlobalSObjectResult
-import scala.concurrent.{Future, Await}
+import com.typesafe.scalalogging.slf4j.LazyLogging
+
+import scala.concurrent.{Await, Future}
 import scala.concurrent.duration.Duration
 
-import com.typesafe.scalalogging.slf4j.Logging
 
-object BackupRunner extends Logging {
+object BackupRunner extends LazyLogging {
 
     type OptionMap = Map[String, Any]
 

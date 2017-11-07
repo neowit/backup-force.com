@@ -19,9 +19,9 @@
 
 package com.neowit.apex.backup
 
-import com.typesafe.scalalogging.slf4j.Logging
+import com.typesafe.scalalogging.slf4j.LazyLogging
 
-object Benchmark extends Logging {
+object Benchmark extends LazyLogging {
     def apply[T](name: String)(block: => T) {
         val start = System.currentTimeMillis
         try {

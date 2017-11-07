@@ -22,13 +22,14 @@ package com.neowit.apex.backup
 import com.sforce.soap.partner.PartnerConnection
 import com.sforce.soap.partner.sobject.SObject
 import java.io._
+
 import com.sforce.ws.util.Base64
 import com.sforce.async._
 import com.sforce.ws.bind.XmlObject
+import com.typesafe.scalalogging.slf4j.LazyLogging
+
 import scala.annotation.tailrec
 import scala.collection.JavaConversions._
-import com.typesafe.scalalogging.slf4j.Logging
-
 import scala.language.implicitConversions
 
 /**
@@ -80,7 +81,7 @@ class FieldResolver (rec: SObject) {
     }
 }
 
-sealed trait OperationMode extends Logging {
+sealed trait OperationMode extends LazyLogging {
     //provide conversion of SObject to FieldResolver
     implicit def toFieldResolver(record: SObject): FieldResolver = new FieldResolver(record)
     val appConfig: Config = Config.getConfig

@@ -21,12 +21,14 @@ package com.neowit.apex.backup
 
 import scala.annotation.tailrec
 import java.util.Properties
-import java.io.{FileWriter, File}
+import java.io.{File, FileWriter}
+
+import com.typesafe.scalalogging.slf4j.LazyLogging
+
 import scala.sys.process._
 import scala.collection.mutable.ListBuffer
 import scala.util.matching.Regex
 import scala.concurrent._
-import com.typesafe.scalalogging.slf4j.Logging
 
 class InvalidCommandLineException(msg: String)  extends IllegalArgumentException(msg: String) {
     def this() {
@@ -51,7 +53,7 @@ trait PropertiesOption extends Properties{
     }
 }
 
-object Config extends Logging {
+object Config extends LazyLogging {
     private var config: Config = new Config
     def getConfig: Config = {
         config
@@ -61,7 +63,7 @@ object Config extends Logging {
         config = new Config
     }
 }
-class Config extends Logging {
+class Config extends LazyLogging {
     def isUnix: Boolean = {
         val os = System.getProperty("os.name").toLowerCase
         os.contains("nux") || os.contains("mac")
@@ -371,9 +373,21 @@ regardless of whether it is also specified in config file or not
             }
         }
 
-        def execute(args: Seq[String] = Seq()):Int = scriptPath match{
-            case Some(path) => Process(path, userProvidedScriptArgs ++ defaultArgs ++ args).!
-            case None => 0
+        def execute(args: Seq[String] = Seq()):Int = {
+            logger.debug(s"execute hook: $hookName")
+            logger.debug(s"scriptPath: '$scriptPath'")
+            scriptPath match{
+                case Some(path) =>
+                    val argsCombined = userProvidedScriptArgs ++ defaultArgs ++ args
+                    val argsStr = argsCombined.mkString(" ")
+                    logger.debug(s"About to execute script: $path $argsStr")
+                    val processBuilder = Process(path, argsCombined)
+                    // execute and return exit code
+                    val exitCode = processBuilder.!
+                    logger.debug(s"$path was executed with exit code: " + exitCode)
+                    exitCode
+                case None => 0
+            }
         }
     }
 
