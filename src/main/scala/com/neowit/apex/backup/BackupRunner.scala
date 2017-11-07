@@ -35,7 +35,7 @@ object BackupRunner extends Logging {
     def isAcceptable(sobj: DescribeGlobalSObjectResult):Boolean ={
         sobj.isCreateable && sobj.isQueryable && !EXCLUDED_TYPES.contains(sobj.getName)
     }
-    val appConfig = Config.getConfig
+    private val appConfig = Config.getConfig
 
     def main(args: Array[String]) {
         if (args.isEmpty) {
@@ -45,7 +45,7 @@ object BackupRunner extends Logging {
                 appConfig.load(args.toList)
                 run()
             } catch {
-                case ex: InvalidCommandLineException => appConfig.help()
+                case _: InvalidCommandLineException => appConfig.help()
                 case ex: MissingRequiredConfigParameterException => logger.error(ex.getMessage)
             } finally {
                 //appConfig.lastQueryPropsActor ! "exit"
@@ -67,27 +67,27 @@ object BackupRunner extends Logging {
 
         val proxyHost = appConfig.getProperty("http.proxyHost")
         val proxyPort = appConfig.getProperty("http.proxyPort")
-        if (None != proxyHost && None != proxyPort)
+        if (proxyHost.isDefined && proxyPort.isDefined)
             config.setProxy(proxyHost.get, proxyPort.get.toInt)
 
         val proxyUsername = appConfig.getProperty("http.proxyUsername")
-        if (None != proxyUsername )
+        if (proxyUsername.isDefined )
             config.setProxyUsername(proxyUsername.get)
 
         val proxyPassword = appConfig.getProperty("http.proxyPassword")
-        if (None != proxyPassword )
+        if (proxyPassword.isDefined )
             config.setProxyPassword(proxyPassword.get)
 
         val ntlmDomain = appConfig.getProperty("http.ntlmDomain")
-        if (None != ntlmDomain )
+        if (ntlmDomain.isDefined )
             config.setNtlmDomain(ntlmDomain.get)
 
         val connectionTimeoutSecs = appConfig.getProperty("http.connectionTimeoutSecs")
-        if (None != connectionTimeoutSecs )
+        if (connectionTimeoutSecs.isDefined )
             config.setConnectionTimeout(connectionTimeoutSecs.get.toInt * 1000)
 
         val readTimeoutSecs = appConfig.getProperty("http.readTimeoutSecs")
-        if (None != readTimeoutSecs )
+        if (readTimeoutSecs.isDefined )
             config.setReadTimeout(readTimeoutSecs.get.toInt * 1000)
 
         val connection = com.sforce.soap.partner.Connector.newConnection(config)
@@ -102,10 +102,10 @@ object BackupRunner extends Logging {
         val objListProperty = appConfig.backupObjects match {
             case Some("*") => Set("*")
             case Some(x) => x.replaceAll(" ", "").split(",").toSet[String]
-            case None => Set()
+            case None => Set.empty[String]
         }
 
-        val mainSObjectsSet =
+        val mainSObjectsSet: Set[String] =
             if (Set("*") != objListProperty)
                 objListProperty
             else
@@ -113,9 +113,9 @@ object BackupRunner extends Logging {
 
         val allSobjectSet = (mainSObjectsSet ++ customSoqlObjects).filterNot(objName => appConfig.backupObjectsExclude.contains(objName.toLowerCase))
 
-        require(!allSobjectSet.isEmpty, "config file contains no objects to backup")
+        require(allSobjectSet.nonEmpty, "config file contains no objects to backup")
         def runAllProcesses() {
-            if (!allSobjectSet.isEmpty) {
+            if (allSobjectSet.nonEmpty) {
                 appConfig.HookGlobalBefore.execute()
             }
             if (!appConfig.useBulkApi) {
@@ -140,7 +140,7 @@ object BackupRunner extends Logging {
                 import scala.concurrent.ExecutionContext.Implicits.global
                 Await.result(Future.sequence(futureList), Duration.Inf)
             }
-            if (!allSobjectSet.isEmpty) {
+            if (allSobjectSet.nonEmpty) {
                 appConfig.HookGlobalAfter.execute()
             }
         }

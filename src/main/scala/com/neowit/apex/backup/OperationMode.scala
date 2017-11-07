@@ -29,6 +29,8 @@ import scala.annotation.tailrec
 import scala.collection.JavaConversions._
 import com.typesafe.scalalogging.slf4j.Logging
 
+import scala.language.implicitConversions
+
 /**
  * this class serves two purposes
  * 1 - resolves field names typed in mixed case and maps them to the properly formatted field names
@@ -56,7 +58,7 @@ class FieldResolver (rec: SObject) {
     def hasField(name: String): Boolean = {
         getFieldIgnoreCase(name) match {
             case null => false
-            case x => true
+            case _ => true
         }
     }
 
@@ -80,8 +82,8 @@ class FieldResolver (rec: SObject) {
 
 sealed trait OperationMode extends Logging {
     //provide conversion of SObject to FieldResolver
-    implicit def toFieldResolver(record: SObject) = new FieldResolver(record)
-    val appConfig = Config.getConfig
+    implicit def toFieldResolver(record: SObject): FieldResolver = new FieldResolver(record)
+    val appConfig: Config = Config.getConfig
 
     val BATCH_CHECK_INTERVAL_SEC = 15 //check if batch is ready to download every N seconds
     def isApplicable(objectApiName: String): Boolean
@@ -121,7 +123,7 @@ sealed trait OperationMode extends Logging {
                     case null => Array[Byte]()
                     case x => x.toString.getBytes
                 }
-                if (buffer.length > 0) {
+                if (buffer.nonEmpty) {
                     try {
                         val output = new FileOutputStream(file)
                         output.write(Base64.decode(buffer))
@@ -143,7 +145,7 @@ class AsyncMode extends OperationMode {
     }
     override def isReallyApplicable(soqlParser: SOQLParser, fields: Array[com.sforce.soap.partner.Field]): Boolean = {
         //Batch Apex does not support relationship fields and base64 fields
-        val hasBase64Fields = fields.filter(f => f.getType == com.sforce.soap.partner.FieldType.base64).length > 0
+        val hasBase64Fields = fields.exists(f => f.getType == com.sforce.soap.partner.FieldType.base64)
         !soqlParser.hasRelationshipFields && !hasBase64Fields && isApplicable(soqlParser.from)
     }
     val allowGlobalWhere = true
@@ -214,7 +216,7 @@ class AsyncMode extends OperationMode {
                     val bytes = new Array[Byte](1024) //1024 bytes - Buffer size
                     Iterator
                         .continually (input.read(bytes))
-                        .takeWhile (-1 !=)
+                        .takeWhile (_ != -1)
                         .foreach (read=>{output.write(bytes,0,read); size += read})
 
                     if (writerNeedsClosing) {
@@ -282,7 +284,7 @@ abstract class SyncMode extends OperationMode {
         if (size > 0) {
             val debugThreshold = 60 * 1000 //show current number of processed record every 60 seconds
             var start = System.currentTimeMillis
-            var recCount = 0;
+            var recCount = 0
             var doExit = false
             do {
                 for (record <- queryResults.getRecords) {
@@ -315,7 +317,7 @@ abstract class SyncMode extends OperationMode {
 case object AsyncWithGlobalWhere extends AsyncMode {
     override def isApplicable(objectApiName: String): Boolean = {
         val configSoql = appConfig.getProperty("backup.soql." + objectApiName)
-        super.isApplicable(objectApiName) &&  None == configSoql && None != appConfig.globalWhere
+        super.isApplicable(objectApiName) &&  configSoql.isEmpty && appConfig.globalWhere.isDefined
     }
     override val allowGlobalWhere = true
 }
@@ -327,7 +329,7 @@ case object AsyncWithoutGlobalWhere extends AsyncMode {
 case object SyncWithGlobalWhere extends SyncMode {
     override def isApplicable(objectApiName: String): Boolean = {
         val configSoql = appConfig.getProperty("backup.soql." + objectApiName)
-        None == configSoql && None != appConfig.globalWhere
+        configSoql.isEmpty && appConfig.globalWhere.isDefined
     }
     override val allowGlobalWhere = true
 }

@@ -53,20 +53,20 @@ trait PropertiesOption extends Properties{
 
 object Config extends Logging {
     private var config: Config = new Config
-    def getConfig = {
+    def getConfig: Config = {
         config
     }
-    def resetConfig = {
+    def resetConfig(): Unit = {
         //used in unit tests
         config = new Config
     }
 }
 class Config extends Logging {
-    def isUnix = {
+    def isUnix: Boolean = {
         val os = System.getProperty("os.name").toLowerCase
         os.contains("nux") || os.contains("mac")
     }
-    def jarPath = {
+    def jarPath: String = {
         val path = BackupRunner.getClass.getProtectionDomain.getCodeSource.getLocation.toURI.getPath
         path match {
             case x if x.endsWith(".jar") =>
@@ -107,7 +107,7 @@ class Config extends Logging {
         isValidCommandLine = true
         //logger.debug(options)
         //merge config files
-        require(!configFilePaths.isEmpty, "missing --config parameter")
+        require(configFilePaths.nonEmpty, "missing --config parameter")
         for (confPath <- configFilePaths) {
             val conf = new Properties()
             conf.load(scala.io.Source.fromFile(confPath.toString).bufferedReader())
@@ -180,7 +180,7 @@ regardless of whether it is also specified in config file or not
      * if there are any shell commands then evaluate them and return result
      * @param str shell commands are denoted by `something ...` syntax
      */
-    def evalShellCommands(str: Option[String]) = {
+    def evalShellCommands(str: Option[String]): Option[String] = {
         def evalOne(curStr: String): String = {
             val firstIndex = curStr.indexOf("`")
             val secondIndex = curStr.indexOf("`", firstIndex+1)
@@ -200,17 +200,17 @@ regardless of whether it is also specified in config file or not
             case Some(x) => Option(evalOne(x))
         }
     }
-    lazy val username = getRequiredProperty("sf.username").get
-    lazy val password = getRequiredProperty("sf.password").get
+    lazy val username: String = getRequiredProperty("sf.username").get
+    lazy val password: String = getRequiredProperty("sf.password").get
     val apiVersion = "28.0"
-    lazy val soapEndpoint = {
+    lazy val soapEndpoint: String = {
         val serverUrl = getRequiredProperty("sf.serverurl")
         serverUrl match {
             case Some(x) => x + "/services/Soap/u/" + apiVersion
             case None => null
         }
     }
-    lazy val backupObjects = getProperty("backup.objects")
+    lazy val backupObjects: Option[String] = getProperty("backup.objects")
 
     lazy val backupObjectsExclude:Set[String] = getProperty("backup.objects.exclude") match {
         case Some("*") => logger.warn("Wildcard in 'backup.objects.exclude' parameter is not supported"); Set()
@@ -218,7 +218,7 @@ regardless of whether it is also specified in config file or not
         case None => Set()
     }
 
-    lazy val objectsWithCustomSoql = mainProps.stringPropertyNames().toArray.filter(propName => propName.toString.startsWith("backup.soql."))
+    lazy val objectsWithCustomSoql: Set[String] = mainProps.stringPropertyNames().toArray.filter(propName => propName.toString.startsWith("backup.soql."))
         .map(propName => propName.toString.replace("backup.soql.", "")).toSet[String]
 
 
@@ -264,13 +264,13 @@ regardless of whether it is also specified in config file or not
         }
     }
 
-    lazy val globalWhere = getProperty("backup.global.where")
+    lazy val globalWhere: Option[String] = getProperty("backup.global.where")
 
     //sometimes we need to stop Bulk API usage and fall back to normal API
     def stopBulkApi() {
         mainProps.setProperty("sf.useBulkApi", "false")
     }
-    def useBulkApi = getProperty("sf.useBulkApi") match {
+    def useBulkApi: Boolean = getProperty("sf.useBulkApi") match {
       case Some("true") => true
       case _ => false
     }
@@ -279,7 +279,7 @@ regardless of whether it is also specified in config file or not
     //def useBulkApi = cond(getProperty("sf.useBulkApi")) { case Some("true") => true }
 
     private def attachmentNameTemplate = getProperty("backup.extract.file")
-    lazy val hasAttachmentNameTemplate = attachmentNameTemplate match {
+    lazy val hasAttachmentNameTemplate: Boolean = attachmentNameTemplate match {
         case Some(str) if str.trim.length >0 => true
         case _ => false
     }
@@ -344,7 +344,7 @@ regardless of whether it is also specified in config file or not
     /*
      * generates specified folders nested in the main outputFolder
      */
-    def mkdirs(dirName: String) = {
+    def mkdirs(dirName: String): String = {
         val path = outputFolder + File.separator + dirName
         //check that folder exists
         val f = new File(path)
@@ -358,7 +358,7 @@ regardless of whether it is also specified in config file or not
 
     abstract class Hook () {
         def hookName: String
-        def scriptPath = getProperty("hook." + hookName)
+        def scriptPath: Option[String] = getProperty("hook." + hookName)
         def userProvidedScriptArgs:Seq[String] = getProperty("hook." + hookName + ".params") match {
           case Some(s) => s.split(" ").toSeq
           case None => Seq()

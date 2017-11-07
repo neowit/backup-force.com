@@ -41,7 +41,7 @@ class BatchProcessingException(msg:String, code: AsyncExceptionCode) extends Asy
 }
 class BackupSObject(connection:PartnerConnection, objectApiName:String ) extends Logging {
 
-    val appConfig = Config.getConfig
+    private val appConfig = Config.getConfig
 
     def run(): Future[(OperationMode, Boolean)] = {
         require(null != appConfig.outputFolder, "config file missing 'outputFolder' value")
@@ -63,12 +63,9 @@ class BackupSObject(connection:PartnerConnection, objectApiName:String ) extends
         def runOneMode(availableModes: List[OperationMode]): (OperationMode, Boolean) = {
             val currentMode = availableModes.head
 
-            val soql =
-                if (None != configSoql)
-                    configSoql.get
-                else
-                    "select * from " + objectApiName + {if (currentMode.allowGlobalWhere) " where " + appConfig.globalWhere.get else ""}
-
+            val soql = configSoql.getOrElse{
+                "select * from " + objectApiName + {if (currentMode.allowGlobalWhere) " where " + appConfig.globalWhere.get else ""}
+            }
 
             val soqlParser = new SOQLParser(soql)
 
@@ -145,7 +142,7 @@ class BackupSObject(connection:PartnerConnection, objectApiName:String ) extends
 
                     case ex: Throwable =>
                         logger.error("Object " + objectApiName +" retrieve failed")
-                        if (ex.isInstanceOf[ConnectionException] && ex.getMessage.indexOf("Failed to send request to") >=0) {
+                        if (ex.isInstanceOf[ConnectionException] && null != ex.getMessage && ex.getMessage.indexOf("Failed to send request to") >=0) {
                             logger.error("Communication problem. Try to increase value of 'http.connectionTimeoutSecs' and/or 'http.readTimeoutSecs' configuration parameters.\n")
                         }
                         logger.error("" + ex)
@@ -153,7 +150,7 @@ class BackupSObject(connection:PartnerConnection, objectApiName:String ) extends
                 }
             }
 
-            if (!result._2 && !availableModes.tail.isEmpty)
+            if (!result._2 && availableModes.tail.nonEmpty)
                 runOneMode(availableModes.tail)
             else
                 result

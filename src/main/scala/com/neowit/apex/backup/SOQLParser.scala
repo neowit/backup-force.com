@@ -21,7 +21,7 @@ package com.neowit.apex.backup
 
 
 class SOQLParser(soqlStr:String) {
-    val appConfig = Config.getConfig
+    val appConfig: Config = Config.getConfig
 
     private val twoParts = """select (.*) from (\w*)""".r
     private val threeParts = """select (.*) from (\w*)(.*)""".r
@@ -31,9 +31,9 @@ class SOQLParser(soqlStr:String) {
         case threeParts(sel, frm, rest) => (sel, frm, rest)
         case _ => (None, None, None)
     }
-    lazy val select = getAsString(selectVal)
-    lazy val from = getAsString(fromVal)
-    lazy val tail = {
+    lazy val select: String = getAsString(selectVal)
+    lazy val from: String = getAsString(fromVal)
+    lazy val tail: String = {
         var tailStr = getAsString(tailVal)
         //find "$object.lastmodifieddate"
         val p = "(?i)\\$object\\.lastmodifieddate".r
@@ -42,11 +42,11 @@ class SOQLParser(soqlStr:String) {
         p.replaceAllIn(tailStr, lastModifiedDate.toString)
     }
     lazy val fields:List[String] = if ("*" == select) List("*") else select.split(",").map(fName => fName.trim).toList
-    lazy val hasTail = tail.length > 0
-    lazy val isAllFields = fields == List("*")
+    lazy val hasTail: Boolean = tail.length > 0
+    lazy val isAllFields: Boolean = fields == List("*")
     //if query contains IsDeleted then this is a hint that user wants ALL Rows (i.e. queryAll)
-    lazy val isAllRows = tail.toLowerCase.contains(" isdeleted=") || tail.toLowerCase.contains(" isdeleted ")
-    lazy val hasRelationshipFields = select.indexOf(".") >= 0
+    lazy val isAllRows: Boolean = tail.toLowerCase.contains(" isdeleted=") || tail.toLowerCase.contains(" isdeleted ")
+    lazy val hasRelationshipFields: Boolean = select.indexOf(".") >= 0
 
     private def getAsString(strVal:Any) = strVal match {
         case None => ""
