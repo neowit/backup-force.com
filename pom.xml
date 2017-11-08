@@ -6,7 +6,7 @@ http://maven.apache.org/xsd/maven-4.0.0.xsd">
 
     <groupId>com.neowit.apex.backup</groupId>
     <artifactId>backup-force.com</artifactId>
-    <version>0.3.8.1-SNAPSHOT</version>
+    <version>0.4.1.0-SNAPSHOT</version>
     <packaging>jar</packaging>
     <inceptionYear>2013</inceptionYear>
 
@@ -25,15 +25,6 @@ http://maven.apache.org/xsd/maven-4.0.0.xsd">
         <encoding>UTF-8</encoding>
         <scala.version>2.10.4</scala.version>
     </properties>
-
-    <repositories>
-        <!-- In Project repository -->
-        <repository>
-            <id>in-project</id>
-            <name>In Project Repo</name>
-            <url>file://${project.basedir}/lib</url>
-        </repository>
-    </repositories>
 
     <build>
         <pluginManagement>
@@ -156,7 +147,7 @@ http://maven.apache.org/xsd/maven-4.0.0.xsd">
         <dependency>
             <groupId>com.force.api</groupId>
             <artifactId>force-wsc</artifactId>
-            <version>28.0.0</version>
+            <version>41.0.0</version>
             <scope>compile</scope>
             <exclusions>
                 <exclusion>
@@ -166,9 +157,9 @@ http://maven.apache.org/xsd/maven-4.0.0.xsd">
             </exclusions>
         </dependency>
         <dependency>
-            <groupId>force</groupId>
-            <artifactId>partner-wsdl</artifactId>
-            <version>28.0</version>
+            <groupId>com.force.api</groupId>
+            <artifactId>force-partner-api</artifactId>
+            <version>41.0.0</version>
         </dependency>
     </dependencies>
 </project>
