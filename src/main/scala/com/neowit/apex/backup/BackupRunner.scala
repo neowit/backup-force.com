@@ -39,6 +39,7 @@ object BackupRunner extends LazyLogging {
     private val appConfig = Config.getConfig
 
     def main(args: Array[String]) {
+        logger.debug(s"command line arguments: ${args.mkString(" ")}")
         if (args.isEmpty) {
             new ConfigGenerator
         } else {
@@ -55,6 +56,7 @@ object BackupRunner extends LazyLogging {
     }
 
     def run() {
+        new UsageReporter(appConfig).report()
 
         val config = new com.sforce.ws.ConnectorConfig()
         config.setUsername(appConfig.username)

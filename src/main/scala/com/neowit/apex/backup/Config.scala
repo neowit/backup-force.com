@@ -384,7 +384,7 @@ regardless of whether it is also specified in config file or not
                     val processBuilder = Process(path, argsCombined)
                     // execute and return exit code
                     val exitCode = processBuilder.!
-                    logger.debug(s"$path was executed with exit code: " + exitCode)
+                    logger.debug(s"'$path' was executed with exit code: " + exitCode)
                     exitCode
                 case None => 0
             }
