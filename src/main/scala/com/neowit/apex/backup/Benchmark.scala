@@ -19,7 +19,7 @@
 
 package com.neowit.apex.backup
 
-import com.typesafe.scalalogging.slf4j.LazyLogging
+import com.typesafe.scalalogging.LazyLogging
 
 object Benchmark extends LazyLogging {
     def apply[T](name: String)(block: => T) {

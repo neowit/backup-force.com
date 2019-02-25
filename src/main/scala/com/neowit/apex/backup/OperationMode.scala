@@ -26,10 +26,10 @@ import java.io._
 import com.sforce.ws.util.Base64
 import com.sforce.async._
 import com.sforce.ws.bind.XmlObject
-import com.typesafe.scalalogging.slf4j.LazyLogging
+import com.typesafe.scalalogging.LazyLogging
 
 import scala.annotation.tailrec
-import scala.collection.JavaConversions._
+import scala.collection.JavaConverters._
 import scala.language.implicitConversions
 
 /**
@@ -53,7 +53,7 @@ class FieldResolver (rec: SObject) {
             } else
                 None
         }
-        findFirst(record.getChildren)
+        findFirst(record.getChildren.asScala)
     }
 
     def hasField(name: String): Boolean = {
@@ -234,7 +234,9 @@ class AsyncMode extends OperationMode {
             case ex: Throwable =>
                 logger.error("failed to close job " + objectApiName)
                 logger.error("" + ex)
-                logger.error(ex.getStackTraceString)
+                if (null != ex.getStackTrace) {
+                    logger.error(ex.getStackTrace.toString)
+                }
         }
         size
 

@@ -27,7 +27,7 @@ import java.io.File
 import scala.concurrent._
 import scala.concurrent.ExecutionContext.Implicits.global
 import com.sforce.ws.ConnectionException
-import com.typesafe.scalalogging.slf4j.LazyLogging
+import com.typesafe.scalalogging.LazyLogging
 
 object ZuluTime {
     val zulu = new java.text.SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'")
@@ -129,7 +129,9 @@ class BackupSObject(connection:PartnerConnection, objectApiName:String ) extends
                             case _ =>
                                 logger.error("Object " + objectApiName +" - Bulk API retrieve failed.")
                                 logger.error("\t" + ex)
-                                logger.error(ex.getStackTraceString)
+                                if (null != ex.getStackTrace) {
+                                    logger.error(ex.getStackTrace.toString)
+                                }
                         }
                     case ex: OutOfMemoryError =>
                         logger.error("Object " + objectApiName +" retrieve failed - OutOfMemoryError")
@@ -138,7 +140,9 @@ class BackupSObject(connection:PartnerConnection, objectApiName:String ) extends
                         logger.error("\tjava -Xmx1024m -jar …\n")
 
                         logger.error("" + ex)
-                        logger.error(ex.getStackTraceString)
+                        if (null != ex.getStackTrace) {
+                            logger.error(ex.getStackTrace.toString)
+                        }
 
                     case ex: Throwable =>
                         logger.error("Object " + objectApiName +" retrieve failed")
@@ -146,7 +150,9 @@ class BackupSObject(connection:PartnerConnection, objectApiName:String ) extends
                             logger.error("Communication problem. Try to increase value of 'http.connectionTimeoutSecs' and/or 'http.readTimeoutSecs' configuration parameters.\n")
                         }
                         logger.error("" + ex)
-                        logger.error(ex.getStackTraceString)
+                        if (null != ex.getStackTrace) {
+                            logger.error(ex.getStackTrace.toString)
+                        }
                 }
             }
 
@@ -158,7 +164,7 @@ class BackupSObject(connection:PartnerConnection, objectApiName:String ) extends
 
         //finally - run the process
         if (appConfig.useBulkApi) {
-            val f = future {
+            val f = Future {
                 runOneMode(modes)
             }
             f

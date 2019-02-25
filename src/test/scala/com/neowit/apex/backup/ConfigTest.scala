@@ -151,7 +151,7 @@ class ConfigTest extends FunSuite with PrivateMethodTester {
             val s7 = Option("""text before`echo abcd`text after`echo efgh`""")
             assertResult(Option("text beforeabcdtext afterefgh")) { appConfig.evalShellCommands(s7) }
 
-            val now = Process("date +%Y%m%d-%H%M").lines.head
+            val now = Process("date +%Y%m%d-%H%M").lineStream.head
             val s9 = Option("I:/SFDC-Exports/backup-force.com/extracts/`date +%Y%m%d-%H%M`")
             assertResult(Option("I:/SFDC-Exports/backup-force.com/extracts/" + now)) { appConfig.evalShellCommands(s9) }
         }

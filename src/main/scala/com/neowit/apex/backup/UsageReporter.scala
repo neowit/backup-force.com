@@ -24,7 +24,7 @@ import java.security.MessageDigest
 import java.net._
 import javax.net.ssl.HttpsURLConnection
 
-import com.typesafe.scalalogging.slf4j.LazyLogging
+import com.typesafe.scalalogging.LazyLogging
 /**
   * this class sends anonymised usage statistics
   * @param config - application config

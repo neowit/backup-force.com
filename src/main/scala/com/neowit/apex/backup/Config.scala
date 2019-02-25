@@ -23,7 +23,7 @@ import scala.annotation.tailrec
 import java.util.Properties
 import java.io.{File, FileWriter}
 
-import com.typesafe.scalalogging.slf4j.LazyLogging
+import com.typesafe.scalalogging.LazyLogging
 
 import scala.sys.process._
 import scala.collection.mutable.ListBuffer
@@ -191,7 +191,7 @@ regardless of whether it is also specified in config file or not
                 //val res1 = expr.!!
                 //remove end of line sequence if present
                 //val result = "\n$".r.replaceFirstIn(res1, "")
-                val result = Process(expr).lines.head
+                val result = Process(expr).lineStream.head
                 evalOne(curStr.substring(0, firstIndex) + result + curStr.substring(secondIndex+1))
 
             } else curStr

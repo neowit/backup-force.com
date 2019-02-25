@@ -34,7 +34,7 @@ class ConfigGenerator {
     2. See list of command line options
     3. Exit
         """)
-    readLine("Enter 1, 2 or 3: ") match {
+    io.StdIn.readLine("Enter 1, 2 or 3: ") match {
         case "1" =>
             val configPath = requestFilePath()
             val config = requestProperties(configPath)
@@ -49,11 +49,11 @@ class ConfigGenerator {
         case _ => System.exit(0)
     }
 
-    def requestFilePath() = {
+    def requestFilePath(): String = {
         val pathExample = if (appConfig.isUnix) "/home/user/myconf.properties" else "c:/extract/myconf.properties"
         var fPath = ""
         while (null == fPath || fPath.isEmpty) {
-            fPath = readLine( "Enter the full path and the name of the config file to be created. \nFor example: "+ pathExample + "\n" )
+            fPath = io.StdIn.readLine( "Enter the full path and the name of the config file to be created. \nFor example: "+ pathExample + "\n" )
         }
         fPath
     }
@@ -71,7 +71,7 @@ class ConfigGenerator {
                 }
 
                 println("It appears file " + configPath + " already exists.")
-                if ("a" == readLine("Enter 'a' to abort the process, any other key - continue updating existing config: ")) {
+                if ("a" == io.StdIn.readLine("Enter 'a' to abort the process, any other key - continue updating existing config: ")) {
                     System.exit(0)
                 }
                 config.load(scala.io.Source.fromFile(configPath).bufferedReader())
@@ -140,7 +140,7 @@ class ConfigGenerator {
                 var noExit = true
                 val keepValuePrompt = if (!currentValue.isEmpty) " [press Enter to keep current value]" else ""
                 while (noExit) {
-                    val res = readLine(" New value" + keepValuePrompt + ": ")
+                    val res = io.StdIn.readLine(" New value" + keepValuePrompt + ": ")
                     if (null != res && !res.isEmpty) {
                         config.setProperty(key, res)
                         noExit = false

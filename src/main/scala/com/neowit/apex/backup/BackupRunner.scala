@@ -20,7 +20,7 @@
 package com.neowit.apex.backup
 
 import com.sforce.soap.partner.DescribeGlobalSObjectResult
-import com.typesafe.scalalogging.slf4j.LazyLogging
+import com.typesafe.scalalogging.LazyLogging
 
 import scala.concurrent.{Await, Future}
 import scala.concurrent.duration.Duration
