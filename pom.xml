@@ -6,7 +6,7 @@ http://maven.apache.org/xsd/maven-4.0.0.xsd">
 
     <groupId>com.neowit.apex.backup</groupId>
     <artifactId>backup-force.com</artifactId>
-    <version>0.4.1.0-SNAPSHOT</version>
+    <version>0.4.5.0-SNAPSHOT</version>
     <packaging>jar</packaging>
     <inceptionYear>2013</inceptionYear>
 
@@ -159,7 +159,7 @@ http://maven.apache.org/xsd/maven-4.0.0.xsd">
         <dependency>
             <groupId>com.force.api</groupId>
             <artifactId>force-partner-api</artifactId>
-            <version>41.0.0</version>
+            <version>45.0.0</version>
         </dependency>
     </dependencies>
 </project>
