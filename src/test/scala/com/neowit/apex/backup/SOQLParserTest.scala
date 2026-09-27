@@ -1,11 +1,11 @@
 package com.neowit.apex.backup
 
 
-import org.scalatest.{FunSuite}
+import org.scalatest.funsuite.AnyFunSuite
 import java.util.Properties
 import java.io.{File, FileWriter}
 
-class SOQLParserTest extends FunSuite {
+class SOQLParserTest extends AnyFunSuite {
 
 
     def withFile(testCode: (File, FileWriter) => Any) {

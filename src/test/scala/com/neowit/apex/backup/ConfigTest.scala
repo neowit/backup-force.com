@@ -19,12 +19,13 @@
 
 package com.neowit.apex.backup
 
-import org.scalatest.{FunSuite, PrivateMethodTester}
+import org.scalatest.funsuite.AnyFunSuite
+import org.scalatest.PrivateMethodTester
 import java.io.{File, FileWriter, FileNotFoundException}
 import scala.sys.process.Process
 import java.util.Properties
 
-class ConfigTest extends FunSuite with PrivateMethodTester {
+class ConfigTest extends AnyFunSuite with PrivateMethodTester {
     private val appConfig = Config.getConfig
     private val isUnix = appConfig.isUnix
 

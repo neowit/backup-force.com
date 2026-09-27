@@ -29,7 +29,7 @@ import com.sforce.ws.bind.XmlObject
 import com.typesafe.scalalogging.LazyLogging
 
 import scala.annotation.tailrec
-import scala.collection.JavaConverters._
+import scala.jdk.CollectionConverters._
 import scala.language.implicitConversions
 
 /**
@@ -339,4 +339,3 @@ case object SyncWithGlobalWhere extends SyncMode {
 case object SyncWithoutGlobalWhere extends SyncMode {
     override val allowGlobalWhere = false
 }
-

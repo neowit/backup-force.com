@@ -20,10 +20,10 @@ http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <url>http://maven.apache.org</url>
 
     <properties>
-        <maven.compiler.source>1.6</maven.compiler.source>
-        <maven.compiler.target>1.6</maven.compiler.target>
+        <maven.compiler.source>1.8</maven.compiler.source>
+        <maven.compiler.target>1.8</maven.compiler.target>
         <encoding>UTF-8</encoding>
-        <scala.version>2.12.8</scala.version>
+        <scala.version>2.13.18</scala.version>
     </properties>
 
     <build>
@@ -32,12 +32,12 @@ http://maven.apache.org/xsd/maven-4.0.0.xsd">
                 <plugin>
                     <groupId>net.alchim31.maven</groupId>
                     <artifactId>scala-maven-plugin</artifactId>
-                    <version>3.1.5</version>
+                    <version>4.9.10</version>
                 </plugin>
                 <plugin>
                     <groupId>org.apache.maven.plugins</groupId>
                     <artifactId>maven-compiler-plugin</artifactId>
-                    <version>2.0.2</version>
+                    <version>3.11.0</version>
                 </plugin>
             </plugins>
         </pluginManagement>
@@ -77,7 +77,7 @@ http://maven.apache.org/xsd/maven-4.0.0.xsd">
             <!-- Plugin to create a single jar that includes all dependencies -->
             <plugin>
                 <artifactId>maven-assembly-plugin</artifactId>
-                <version>2.4</version>
+                <version>3.7.1</version>
                 <configuration>
                     <descriptorRefs>
                         <descriptorRef>jar-with-dependencies</descriptorRef>
@@ -102,7 +102,7 @@ http://maven.apache.org/xsd/maven-4.0.0.xsd">
             <plugin>
                 <groupId>org.scalatest</groupId>
                 <artifactId>scalatest-maven-plugin</artifactId>
-                <version>1.0</version>
+                <version>2.2.0</version>
                 <!--
                 <configuration>
                     <reportsDirectory>${project.build.directory}/surefire-reports</reportsDirectory>
@@ -131,23 +131,23 @@ http://maven.apache.org/xsd/maven-4.0.0.xsd">
         <dependency>
             <groupId>ch.qos.logback</groupId>
             <artifactId>logback-classic</artifactId>
-            <version>1.0.13</version>
+            <version>1.2.13</version>
         </dependency>
         <dependency>
             <groupId>com.typesafe.scala-logging</groupId>
-            <artifactId>scala-logging_2.12</artifactId>
-            <version>3.9.2</version>
+            <artifactId>scala-logging_2.13</artifactId>
+            <version>3.9.6</version>
         </dependency>
         <dependency>
             <groupId>org.scalatest</groupId>
-            <artifactId>scalatest_2.12</artifactId>
-            <version>3.0.5</version>
+            <artifactId>scalatest_2.13</artifactId>
+            <version>3.2.19</version>
             <scope>test</scope>
         </dependency>
         <dependency>
             <groupId>com.force.api</groupId>
             <artifactId>force-wsc</artifactId>
-            <version>45.0.0</version>
+            <version>67.0.0</version>
             <scope>compile</scope>
             <exclusions>
                 <exclusion>
@@ -159,7 +159,7 @@ http://maven.apache.org/xsd/maven-4.0.0.xsd">
         <dependency>
             <groupId>com.force.api</groupId>
             <artifactId>force-partner-api</artifactId>
-            <version>45.0.0</version>
+            <version>67.0.0</version>
         </dependency>
     </dependencies>
 </project>
