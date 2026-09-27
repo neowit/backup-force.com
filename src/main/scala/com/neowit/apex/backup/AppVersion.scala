@@ -24,5 +24,5 @@ package com.neowit.apex.backup
   */
 object AppVersion {
     val APP_NAME = "backup-force.com"
-    val VERSION = "0.4.1.0"
+    val VERSION = "0.6.7.0"
 }
