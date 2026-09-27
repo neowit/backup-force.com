@@ -204,7 +204,7 @@ regardless of whether it is also specified in config file or not
     }
     lazy val username: String = getRequiredProperty("sf.username").get
     lazy val password: String = getRequiredProperty("sf.password").get
-    val apiVersion = "28.0"
+    val apiVersion = "67.0"
     lazy val soapEndpoint: String = {
         val serverUrl = getRequiredProperty("sf.serverurl")
         serverUrl match {
