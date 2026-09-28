@@ -25,6 +25,25 @@ See [Wiki/Recipes](https://github.com/neowit/backup-force.com/wiki/Recipes) and 
   or if you want to direct output to a file instead of console:  
   `java -jar backup-force.com-0.1.jar --config /full/path/to/myconf.properties > log.txt`  
 
+## Salesforce CLI setup
+
+1. Install [Salesforce CLI v2](https://developer.salesforce.com/tools/salesforcecli).
+2. Authenticate once in a browser and save an org alias:
+
+   ```shell
+   sf org login web --alias backup-org
+   ```
+
+   This uses Salesforce's own CLI app; you do not need to create a connected app or manage certificates or secrets. The sf CLI handles token refresh.
+
+3. Set the alias in the backup-force configuration:
+
+   ```properties
+   sf.orgAlias = backup-org
+   ```
+
+If the sf executable is not named `sf` or is not on `PATH`, set the optional `sf.cliPath` property to its executable path. On Windows, bare `sf` resolves via a cmd shim; if lookup fails, set `sf.cliPath` to the full path to `sf.exe`. For headless or CI environments, see `sf org login --help` for non-interactive login variants, then configure the resulting org alias the same way.
+
 ## Video instructions   
 * [Installation](http://youtu.be/eyIkdsSBpLY) - describes initial installation and first launch
 * [Basic config example](http://youtu.be/ptMc-7hp5qA) - an example of backup-force.com configuration to extract/backup data from 2 selected Salesforce.com objects

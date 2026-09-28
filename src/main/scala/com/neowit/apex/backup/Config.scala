@@ -149,9 +149,9 @@ OR if sfdc login/pass are in a different file
  java -jar """ + jarPath + """ --config c:/myconf.properties --config c:/credentials.properties
 
 
-In the following example username user@domain.com specified in the command line will be used,
+In the following example server URL specified in the command line will be used,
 regardless of whether it is also specified in config file or not
- java -jar """ + jarPath + """ --config c:/myconf.properties --sf.username user@domain.com
+ java -jar """ + jarPath + """ --config c:/myconf.properties --sf.serverurl https://mycompany.my.salesforce.com
 
           """)
     }
@@ -202,16 +202,9 @@ regardless of whether it is also specified in config file or not
             case Some(x) => Option(evalOne(x))
         }
     }
-    lazy val username: String = getRequiredProperty("sf.username").get
-    lazy val password: String = getRequiredProperty("sf.password").get
+    lazy val orgAlias: String = getRequiredProperty("sf.orgAlias").get
+    lazy val cliPath: String = getProperty("sf.cliPath").filter(_.nonEmpty).getOrElse("sf")
     val apiVersion = "67.0"
-    lazy val soapEndpoint: String = {
-        val serverUrl = getRequiredProperty("sf.serverurl")
-        serverUrl match {
-            case Some(x) => x + "/services/Soap/u/" + apiVersion
-            case None => null
-        }
-    }
     lazy val backupObjects: Option[String] = getProperty("backup.objects")
 
     lazy val backupObjectsExclude:Set[String] = getProperty("backup.objects.exclude") match {
@@ -435,4 +428,3 @@ regardless of whether it is also specified in config file or not
         }
     }
 }
-

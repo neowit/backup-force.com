@@ -58,46 +58,42 @@ object BackupRunner extends LazyLogging {
     def run() {
         new UsageReporter(appConfig).report()
 
-        val config = new com.sforce.ws.ConnectorConfig()
-        config.setUsername(appConfig.username)
-        config.setPassword(appConfig.password)
+        val (connection, config) = withSessionRetry(() => SfCliAuth.fetchToken(appConfig)) { oauth =>
+            val config = new com.sforce.ws.ConnectorConfig()
+            config.setSessionId(oauth.accessToken)
+            config.setServiceEndpoint(oauth.instanceUrl.stripSuffix("/") + "/services/Soap/u/" + appConfig.apiVersion)
 
-        val endpoint = appConfig.soapEndpoint
-        if (null != endpoint)
-            config.setAuthEndpoint(endpoint)
+            config.setCompression(true)
 
-        config.setCompression(true)
+            val proxyHost = appConfig.getProperty("http.proxyHost")
+            val proxyPort = appConfig.getProperty("http.proxyPort")
+            if (proxyHost.isDefined && proxyPort.isDefined)
+                config.setProxy(proxyHost.get, proxyPort.get.toInt)
 
-        val proxyHost = appConfig.getProperty("http.proxyHost")
-        val proxyPort = appConfig.getProperty("http.proxyPort")
-        if (proxyHost.isDefined && proxyPort.isDefined)
-            config.setProxy(proxyHost.get, proxyPort.get.toInt)
+            val proxyUsername = appConfig.getProperty("http.proxyUsername")
+            if (proxyUsername.isDefined )
+                config.setProxyUsername(proxyUsername.get)
 
-        val proxyUsername = appConfig.getProperty("http.proxyUsername")
-        if (proxyUsername.isDefined )
-            config.setProxyUsername(proxyUsername.get)
+            val proxyPassword = appConfig.getProperty("http.proxyPassword")
+            if (proxyPassword.isDefined )
+                config.setProxyPassword(proxyPassword.get)
 
-        val proxyPassword = appConfig.getProperty("http.proxyPassword")
-        if (proxyPassword.isDefined )
-            config.setProxyPassword(proxyPassword.get)
+            val ntlmDomain = appConfig.getProperty("http.ntlmDomain")
+            if (ntlmDomain.isDefined )
+                config.setNtlmDomain(ntlmDomain.get)
 
-        val ntlmDomain = appConfig.getProperty("http.ntlmDomain")
-        if (ntlmDomain.isDefined )
-            config.setNtlmDomain(ntlmDomain.get)
+            val connectionTimeoutSecs = appConfig.getProperty("http.connectionTimeoutSecs")
+            if (connectionTimeoutSecs.isDefined )
+                config.setConnectionTimeout(connectionTimeoutSecs.get.toInt * 1000)
 
-        val connectionTimeoutSecs = appConfig.getProperty("http.connectionTimeoutSecs")
-        if (connectionTimeoutSecs.isDefined )
-            config.setConnectionTimeout(connectionTimeoutSecs.get.toInt * 1000)
+            val readTimeoutSecs = appConfig.getProperty("http.readTimeoutSecs")
+            if (readTimeoutSecs.isDefined )
+                config.setReadTimeout(readTimeoutSecs.get.toInt * 1000)
 
-        val readTimeoutSecs = appConfig.getProperty("http.readTimeoutSecs")
-        if (readTimeoutSecs.isDefined )
-            config.setReadTimeout(readTimeoutSecs.get.toInt * 1000)
-
-        val connection = com.sforce.soap.partner.Connector.newConnection(config)
-        logger.info("Auth EndPoint: "+config.getAuthEndpoint)
-        logger.info("Service EndPoint: "+config.getServiceEndpoint)
-        logger.info("Username: "+config.getUsername)
-        //logger.info("SessionId: "+config.getSessionId)
+            (com.sforce.soap.partner.Connector.newConnection(config), config)
+        }
+        logger.info("Salesforce CLI org alias: " + appConfig.orgAlias)
+        logger.info("Service EndPoint: " + config.getServiceEndpoint)
 
         //list of objects that have custom SOQL query defined
         val customSoqlObjects = appConfig.objectsWithCustomSoql
@@ -153,5 +149,14 @@ object BackupRunner extends LazyLogging {
 
     }
 
-}
+    private[backup] def withSessionRetry[T, R](fetchToken: () => T)(operation: T => R): R = {
+        val token = fetchToken()
+        try operation(token)
+        catch {
+            case error: com.sforce.ws.ConnectionException
+                if Option(error.getMessage).exists(_.contains("INVALID_SESSION_ID")) =>
+                operation(fetchToken())
+        }
+    }
 
+}

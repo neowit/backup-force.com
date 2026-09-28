@@ -60,7 +60,7 @@ class ConfigTest extends AnyFunSuite with PrivateMethodTester {
     }
     test("No --config Param") {
         intercept[IllegalArgumentException] {
-            appConfig.load(List("--sf.username", "aaa@bb.cc"))
+            appConfig.load(List("--test.key1", "aaa@bb.cc"))
         }
     }
     test("Missing ConfigFile") {
@@ -75,7 +75,7 @@ class ConfigTest extends AnyFunSuite with PrivateMethodTester {
     test("Existing config, but missing parameter") {
         withFile { (file, writer) =>
             val props = new java.util.Properties()
-            props.setProperty("sf.username", "aaa@bb.cc")
+            props.setProperty("test.key1", "aaa@bb.cc")
             props.store(writer, "")
 
             appConfig.load(List("--config", file.getAbsolutePath))
@@ -105,7 +105,7 @@ class ConfigTest extends AnyFunSuite with PrivateMethodTester {
     test("Parameter from second --config takes priority over first --config") {
         withFile { (file, writer) =>
             val props = new java.util.Properties()
-            props.setProperty("sf.username", "val1")
+            props.setProperty("test.key1", "val1")
             props.store(writer, "")
             withFile {(f2, w2) =>
                 val props2 = new Properties() with PropertiesOption
